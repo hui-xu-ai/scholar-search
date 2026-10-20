@@ -90,6 +90,24 @@ def test_expression_plan_uses_expert_page() -> None:
     assert plan.actions[3].params["selector"] == "input.btn-search"
 
 
+def test_all_documented_fields_route_to_expert_page() -> None:
+    for field in (
+        "SU", "TKA", "KY", "TI", "FT", "AU", "FI", "RP", "AF",
+        "FU", "AB", "CO", "RF", "CLC", "LY", "DOI", "CF",
+    ):
+        plan = plan_search.build(SearchQuery(text=f"{field}='x'", channel="cnki"))
+        assert str(plan.actions[0].params["url"]).startswith(
+            "https://kns.cnki.net/kns8s/AdvSearch"
+        ), field
+
+
+def test_author_wildcard_routes_to_expert_page() -> None:
+    plan = plan_search.build(SearchQuery(text="AU % '陈'", channel="cnki"))
+    assert str(plan.actions[0].params["url"]).startswith(
+        "https://kns.cnki.net/kns8s/AdvSearch"
+    )
+
+
 def test_page_two_adds_a_page_turn() -> None:
     plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", page=2))
 

@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.2.5] - 2026-10-21
+
+### Added
+
+- Field detection for expert search now covers every documented code: `SU`, `TKA`, `KY`,
+  `TI`, `FT`, `AU`, `FI`, `RP`, `AF`, `FU`, `AB`, `CO`, `RF`, `CLC`, `LY`, `DOI`, `CF`.
+  Unknown `XX=` / `XX%` codes also route to the expert page instead of the one-box search.
+- Skill documentation now lists the official field table and operators (`and`/`*`,
+  `or`/`+`, `not`/`-`, `%` for author matching).
+- Live-verified: `TI='IPMC' and AU % '王'` returns 43 hits across 2014–2026.
+
 ## [0.2.4] - 2026-10-21
 
 ### Added

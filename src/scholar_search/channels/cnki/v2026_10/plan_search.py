@@ -24,7 +24,9 @@ from ....core.errors import ChannelError
 from .selectors import EXPERT, SEARCH, SEARCH_PAGE, SEARCH_READY
 
 _EXPRESSION = re.compile(
-    r"(?:^|[\s(])(?:SU|TKA|KY|TI|FT|AU|FI|AF|FU|AB|LY|DOI|CF)\s*(?:=|%)",
+    # Any field code the site documents (SU, TKA, KY, TI, FT, AU, FI, RP, AF,
+    # FU, AB, CO, RF, CLC, LY, DOI, CF) plus an escape hatch for unknown ones.
+    r"(?:^|[\s(])[A-Z]{2,4}\s*(?:=|%)",
     re.IGNORECASE,
 )
 
