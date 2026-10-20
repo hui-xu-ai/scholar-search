@@ -19,6 +19,8 @@ SEARCH = {
     "total": ".pagerTitleCell",
     "page_marker": ".countPageMark",
     "next_page": "#PageNext",
+    "page_size_open": "#perPageDiv .sort-default",
+    "page_size_50": "#perPageDiv li[data-val='50']",
 }
 
 EXPERT = {

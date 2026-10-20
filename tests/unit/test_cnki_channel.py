@@ -74,7 +74,7 @@ def test_search_plan_drives_the_search_box() -> None:
         "wait_for",
         "read_html",
     ]
-    assert plan.actions[0].params["url"] == "https://kns.cnki.net/kns8s/search"
+    assert str(plan.actions[0].params["url"]).startswith("https://kns.cnki.net/kns8s/search")
     assert plan.actions[2].params["text"] == "人工智能"
 
 
@@ -82,7 +82,9 @@ def test_expression_plan_uses_expert_page() -> None:
     expression = "SU='IPMC' and KY='驱动器'"
     plan = plan_search.build(SearchQuery(text=expression, channel="cnki"))
 
-    assert plan.actions[0].params["url"] == "https://kns.cnki.net/kns8s/AdvSearch?type=expert"
+    assert str(plan.actions[0].params["url"]).startswith(
+        "https://kns.cnki.net/kns8s/AdvSearch?type=expert"
+    )
     assert plan.actions[2].params["text"] == expression
     assert plan.actions[2].params["selector"] == "textarea.majorSearch"
     assert plan.actions[3].params["selector"] == "input.btn-search"
@@ -97,14 +99,17 @@ def test_page_two_adds_a_page_turn() -> None:
     assert plan.actions[-1].verb == "read_html"
 
 
-def test_year_filters_are_rejected() -> None:
-    # The site's year control triggered an account verification gate; refuse.
-    import pytest
+def test_large_limit_switches_page_size() -> None:
+    plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", limit=50))
+    selectors = [action.params.get("selector") for action in plan.actions]
+    assert "#perPageDiv li[data-val='50']" in selectors
 
-    from scholar_search.core.errors import ChannelError
 
-    with pytest.raises(ChannelError, match="year filters are disabled"):
-        plan_search.build(SearchQuery(text="IPMC", year_from=2020, year_to=2021))
+def test_year_filters_do_not_touch_the_site_control() -> None:
+    plan = plan_search.build(SearchQuery(text="IPMC", year_from=2020, year_to=2021))
+    selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
+    assert "#txtStartYear" not in selectors
+    assert "#btnFilterYear" not in selectors
 
 
 def test_unsupported_filters_fail_loudly() -> None:

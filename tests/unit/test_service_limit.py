@@ -61,3 +61,27 @@ def test_search_honours_limit(tmp_path: Path) -> None:
 
     assert len(page.records) == 2
     assert page.total == 5
+
+
+def test_year_filter_applies_to_fetched_records(tmp_path: Path) -> None:
+    from dataclasses import replace
+
+    years = [2019, 2020, 2021, 2022, 2023]
+    channel = FakeChannel(
+        manifest=make_manifest(),
+        records=[replace(make_record(f"Paper {i}"), year=year) for i, year in enumerate(years)],
+    )
+    scripts = [
+        [
+            {"verb": "goto", "data": {}},
+            {"verb": "read_html", "data": {"html": "<html>results</html>"}},
+        ]
+    ]
+    service = build(tmp_path, channel, scripts)
+
+    page = service.search(
+        SearchQuery(text="x", channel="fake", year_from=2021, year_to=2022)
+    )
+
+    assert [record.year for record in page.records] == [2021, 2022]
+    assert page.total == 5

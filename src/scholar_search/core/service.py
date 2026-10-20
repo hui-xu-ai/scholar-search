@@ -60,9 +60,23 @@ class ScholarService:
 
         plan = channel.plan_search(query)
         page = channel.parse_search(_html(self._run(plan, spec)), query=query)
-        if len(page.records) > query.limit:
+
+        records = page.records
+        if query.year_from is not None or query.year_to is not None:
+            # The site's year control is unreliable, so filter what we fetched.
+            # `total` still describes the site's result set, not the subset.
+            records = tuple(
+                record
+                for record in records
+                if record.year is not None
+                and (query.year_from is None or record.year >= query.year_from)
+                and (query.year_to is None or record.year <= query.year_to)
+            )
+        if len(records) > query.limit:
+            records = records[: query.limit]
+        if records is not page.records:
             page = SearchPage(
-                records=page.records[: query.limit],
+                records=records,
                 total=page.total,
                 page=page.page,
                 page_count=page.page_count,

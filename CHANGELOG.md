@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.2.4] - 2026-10-21
+
+### Added
+
+- `limit > 20` switches the result grid to 50 rows per page (12 pages for the 595-hit
+  `IPMC` query); with the 3-page cap a single call returns up to ~150 records.
+- `year_from` / `year_to` are applied client-side to the fetched records. The site's own
+  year control is never touched; `total` still reports the site's full result count.
+
+### Fixed
+
+- Search URLs carry a per-call nonce so every call starts from the grid's default state;
+  previously a repeat navigation could inherit the previous page size and break the switch.
+
 ## [0.2.3] - 2026-10-21
 
 ### Fixed
