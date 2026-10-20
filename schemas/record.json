@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/scholar-search/scholar-search/schemas/record.json",
+  "title": "ScholarlyRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["channel", "title"],
+  "properties": {
+    "channel": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "authors": { "type": "array", "items": { "type": "string" } },
+    "institution": { "type": ["string", "null"] },
+    "source": { "type": ["string", "null"] },
+    "year": { "type": ["integer", "null"], "minimum": 1800, "maximum": 2200 },
+    "volume": { "type": ["string", "null"] },
+    "issue": { "type": ["string", "null"] },
+    "pages": { "type": ["string", "null"] },
+    "doi": { "type": ["string", "null"] },
+    "abstract": { "type": ["string", "null"] },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "citations": { "type": ["integer", "null"], "minimum": 0 },
+    "downloads": { "type": ["integer", "null"], "minimum": 0 },
+    "url": { "type": ["string", "null"] },
+    "fetched_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

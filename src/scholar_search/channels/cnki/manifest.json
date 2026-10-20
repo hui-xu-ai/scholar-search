@@ -1,0 +1,20 @@
+{
+  "channel": "cnki",
+  "site_version": "2026.10",
+  "schema_version": 1,
+  "min_core": "1.0.0",
+  "domains": ["kns.cnki.net", "www.cnki.net"],
+  "verbs": [
+    "goto",
+    "wait_for",
+    "type",
+    "click",
+    "select",
+    "read_html",
+    "read_text",
+    "scroll",
+    "sleep"
+  ],
+  "detail_url_prefixes": ["/kcms2/article/abstract"],
+  "capabilities": ["search", "detail", "journal", "export"]
+}

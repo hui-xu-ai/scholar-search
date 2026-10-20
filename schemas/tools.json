@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/scholar-search/scholar-search/schemas/tools.json",
+  "title": "scholar-search MCP tools",
+  "description": "Stable tool surface. Channel upgrades must not change these schemas.",
+  "tools": [
+    {
+      "name": "search",
+      "description": "Search a channel for bibliographic records. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string", "minLength": 1 },
+          "channel": { "type": "string", "default": "cnki" },
+          "sort": { "enum": ["relevance", "date", "citation"], "default": "relevance" },
+          "page": { "type": "integer", "minimum": 1, "maximum": 3, "default": 1 },
+          "year_from": { "type": ["integer", "null"] },
+          "year_to": { "type": ["integer", "null"] },
+          "source_types": { "type": "array", "items": { "type": "string" } },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+        }
+      }
+    },
+    {
+      "name": "detail",
+      "description": "Fetch full metadata for one record by its detail URL.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "pattern": "^https://[a-z0-9.]*cnki\\.net/" },
+          "channel": { "type": "string", "default": "cnki" }
+        }
+      }
+    },
+    {
+      "name": "journal",
+      "description": "List every record in one journal issue, identified by ISSN.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["issn", "year", "issue"],
+        "properties": {
+          "issn": { "type": "string", "pattern": "^\\d{4}-?\\d{3}[0-9Xx]$" },
+          "year": { "type": "integer", "minimum": 1800 },
+          "issue": { "type": "string", "minLength": 1 },
+          "channel": { "type": "string", "default": "cnki" }
+        }
+      }
+    },
+    {
+      "name": "export",
+      "description": "Render records as RIS or EndNote text. No file is written.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["records", "format"],
+        "properties": {
+          "records": { "type": "array", "items": { "$ref": "record.json" } },
+          "format": { "enum": ["ris", "endnote"] }
+        }
+      }
+    },
+    {
+      "name": "status",
+      "description": "Session state: login, institution, risk cooldown, quota usage.",
+      "inputSchema": { "type": "object", "additionalProperties": false, "properties": {} }
+    }
+  ]
+}

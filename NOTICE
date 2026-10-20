@@ -1,0 +1,30 @@
+scholar-search
+==============
+
+Academic search: a read-only, microkernel-based scholarly metadata service.
+
+This project is an independent, non-official tool. It is not affiliated with,
+endorsed by, or sponsored by any academic database operator.
+
+Third-party references
+----------------------
+
+Channel selectors and interaction flows were informed by the public project
+cookjohn/cnki-skills (MIT License), which documents CNKI page structure and
+search flows. No source code from that project is copied; only factual
+selector knowledge and workflow order are referenced.
+
+  https://github.com/cookjohn/cnki-skills
+
+Trademarks
+----------
+
+"CNKI", "知网", and other names are trademarks of their respective owners.
+They are used here only to describe interoperability targets, not as branding.
+
+Data
+----
+
+No bibliographic data, credentials, cookies, or session material is
+distributed with this project. Test fixtures are recorded page structure with
+personal and session data removed.
