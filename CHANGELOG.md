@@ -17,6 +17,13 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - RIS and EndNote text export.
 - Fixture adapter for offline replay.
 - 40 unit and contract tests covering policy, risk, planner, cache, registry, service, export.
+- Native bridge: 4-byte-length JSON framing, request correlation, timeout handling.
+- Bridge policy: nine-verb allowlist, https-only, CNKI host allowlist, sleep bound.
+- Loopback TCP channel between host and MCP server, per-run random token.
+- MV3 extension skeleton (background relay + nine generic DOM verbs).
+- `native-host/install.ps1` registers the host for Edge and Chrome under HKCU.
+- 47 tests including bridge framing, policy and TCP round-trip.
+
 
 
 ## [0.1.0] - 2026-10-20

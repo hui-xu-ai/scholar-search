@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "scholar-search bridge",
+  "version": "0.1.0",
+  "description": "Read-only bibliographic retrieval bridge. Nine generic verbs, no site logic.",
+  "permissions": ["nativeMessaging", "tabs", "scripting"],
+  "host_permissions": ["*://*.cnki.net/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.cnki.net/*"],
+      "js": ["content/actions.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
