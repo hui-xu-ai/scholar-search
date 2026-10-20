@@ -18,13 +18,12 @@ from .errors import RiskBlocked
 # URL fragments that mean "you are behind an interstitial", not a result page.
 VERIFY_URL_MARKERS: tuple[str, ...] = ("/verify/home", "/verify/", "captcha")
 
-# Text that only appears when a human check is being demanded.
+# Text that only appears when a human check is being demanded. Kept for
+# reference; detection now relies on the content script's visibility flag.
 CAPTCHA_TEXT_MARKERS: tuple[str, ...] = (
     "安全验证",
     "滑动验证",
     "请完成验证",
-    "tcaptcha",
-    "验证码",
 )
 
 # Login redirects are not a captcha, but they still invalidate the plan.
@@ -84,15 +83,11 @@ class RiskGuard:
         if any(marker in url for marker in LOGIN_URL_MARKERS):
             return RiskSignal.LOGIN_REDIRECT
 
-        for value in outcome.data.values():
-            if isinstance(value, str) and self._contains_marker(value):
-                return RiskSignal.TEXT_MARKER
+        # The content script reports whether the captcha widget is actually on
+        # screen; scanning raw HTML would match the SDK's hidden preloaded DOM.
+        if outcome.data.get("captcha_visible") is True:
+            return RiskSignal.CAPTCHA
         return None
-
-    @staticmethod
-    def _contains_marker(text: str) -> bool:
-        lowered = text.casefold()
-        return any(marker.casefold() in lowered for marker in CAPTCHA_TEXT_MARKERS)
 
     # -- tripping ------------------------------------------------------
 

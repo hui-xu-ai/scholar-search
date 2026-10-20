@@ -29,9 +29,15 @@ def guard(tmp_path: Path) -> RiskGuard:
     return RiskGuard(state_path=tmp_path / "cooldown.json")
 
 
-def test_detects_captcha_text(tmp_path: Path) -> None:
-    signal = guard(tmp_path).inspect(outcome(data={"html": "请完成验证后继续"}))
-    assert signal is RiskSignal.TEXT_MARKER
+def test_detects_visible_captcha_widget(tmp_path: Path) -> None:
+    signal = guard(tmp_path).inspect(outcome(data={"captcha_visible": True}))
+    assert signal is RiskSignal.CAPTCHA
+
+
+def test_hidden_sdk_dom_is_not_a_captcha(tmp_path: Path) -> None:
+    # The captcha SDK preloads DOM; text alone must not trigger a cooldown.
+    assert guard(tmp_path).inspect(outcome(data={"html": "验证码登录"})) is None
+    assert guard(tmp_path).inspect(outcome(data={"captcha_visible": False})) is None
 
 
 def test_detects_verify_redirect(tmp_path: Path) -> None:

@@ -66,7 +66,7 @@ def test_risk_stops_plan_before_next_action(tmp_path: Path) -> None:
     adapter = FixtureAdapter(
         [
             {"verb": "goto", "data": {"url": "https://example.org/"}},
-            {"verb": "read_html", "data": {"html": "安全验证"}},
+            {"verb": "read_html", "data": {"captcha_visible": True}},
             {"verb": "read_html", "data": {"html": "<html>never</html>"}},
         ]
     )

@@ -48,7 +48,13 @@ async function run(action, params) {
     }
     case "read_html": {
       const html = document.documentElement.outerHTML;
-      return { ok: true, data: { html: html.slice(0, MAX_HTML_CHARS) } };
+      // The captcha SDK preloads hidden DOM; only an on-screen widget counts.
+      const widget = document.querySelector("#tcaptcha_transform_dy");
+      const visible = Boolean(widget && widget.getBoundingClientRect().top >= 0);
+      return {
+        ok: true,
+        data: { html: html.slice(0, MAX_HTML_CHARS), captcha_visible: visible },
+      };
     }
     case "read_text": {
       const element = document.querySelector(params.selector);
