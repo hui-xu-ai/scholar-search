@@ -6,6 +6,19 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Kernel pipeline: registry, policy, risk guard, planner, audit, cache, service.
+- Channel registry with site-version selection and manifest/version consistency checks.
+- Policy engine: verb/domain allowlists, 3s hard floor, daily quota, plan size and duration limits.
+- Risk guard: captcha/verify/403/login detection, 24h persisted cooldown, manual reset only.
+- JSONL audit log (structural facts only, no page content or credentials).
+- SQLite response cache with TTL.
+- RIS and EndNote text export.
+- Fixture adapter for offline replay.
+- 40 unit and contract tests covering policy, risk, planner, cache, registry, service, export.
+
+
 ## [0.1.0] - 2026-10-20
 
 ### Added

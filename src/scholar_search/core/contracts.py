@@ -245,11 +245,13 @@ class ActionOutcome:
 
 
 class BrowserAdapter(Protocol):
+    """Executes one action. The kernel owns sequencing, policy and risk checks."""
+
     name: str
 
-    def execute(
-        self, plan: Plan, *, policy: ExecutionPolicy
-    ) -> tuple[ActionOutcome, ...]: ...
+    def execute(self, action: Action, *, timeout_ms: int) -> ActionOutcome: ...
+
+    def close(self) -> None: ...
 
 
 # --------------------------------------------------------------------------
