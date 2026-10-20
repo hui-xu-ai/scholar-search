@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scholar-search"
-version = "0.1.0"
+version = "0.2.0"
 description = "学术检索：只读的学术题录检索微内核，渠道可插拔（知网为首个渠道）"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -63,3 +63,4 @@ mypy_path = "src"
 testpaths = ["tests"]
 addopts = "-q"
 markers = ["e2e: live browser tests, opt-in only"]
+

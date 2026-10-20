@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-20
 
 ### Added
 
@@ -40,8 +40,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - Cache keys include the package version so parser changes do not serve stale hits.
 - Plan budget stays under 120s via per-action timeouts; page capped at 3.
 - 56 tests; live-verified: keyword 595 hits, expert expression 57 hits, page 2 distinct.
-
-
+- Detail parser rewritten for the 2026 layout: `.wx-tit h1`, `h3.author`, `li.top-space` rows; strips author affiliation marks and “附视频” suffixes.
+- Risk guard now flags verification interstitials by document title (“安全验证”), after an expired detail URL served one.
+- Native host runs one process per browser connection: the previous single-instance check deadlocked reconnects.
+- Skills: `scholar-search`, `scholar-detail`, `scholar-export`.
+- Docs: reference parity table and incident log.
+- 58 tests; release workflow on version tags.
 
 ## [0.1.0] - 2026-10-20
 
