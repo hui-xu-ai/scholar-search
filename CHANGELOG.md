@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.2.6] - 2026-10-21
+
+### Added
+
+- `sort=date` and `sort=citation` drive the result grid's sort tabs (`#orderList`).
+  A relevance reset precedes the target click, because the grid remembers the previous
+  direction and a bare click would toggle unpredictably.
+- Live-verified: `limit=50, sort=date` returns 50 rows in strict descending date order
+  (2026 → 2024), 12 pages, no verification prompt.
+
 ## [0.2.5] - 2026-10-21
 
 ### Added

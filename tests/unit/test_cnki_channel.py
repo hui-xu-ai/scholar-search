@@ -130,13 +130,21 @@ def test_year_filters_do_not_touch_the_site_control() -> None:
     assert "#btnFilterYear" not in selectors
 
 
+def test_sort_uses_result_grid_tabs() -> None:
+    plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", sort="date"))
+    selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
+    assert "#orderList li[data-sort='PT']" in selectors
+
+    plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", sort="citation"))
+    selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
+    assert "#orderList li[data-sort='CF']" in selectors
+
+
 def test_unsupported_filters_fail_loudly() -> None:
     import pytest
 
     from scholar_search.core.errors import ChannelError
 
-    with pytest.raises(ChannelError, match="sort"):
-        plan_search.build(SearchQuery(text="IPMC", sort="date"))
     with pytest.raises(ChannelError, match="source-type"):
         plan_search.build(SearchQuery(text="IPMC", source_types=("journal",)))
 

@@ -21,7 +21,7 @@ import time
 
 from ....core.contracts import Action, Plan, SearchQuery
 from ....core.errors import ChannelError
-from .selectors import EXPERT, SEARCH, SEARCH_PAGE, SEARCH_READY
+from .selectors import EXPERT, SEARCH, SEARCH_PAGE, SEARCH_READY, SORT
 
 _EXPRESSION = re.compile(
     # Any field code the site documents (SU, TKA, KY, TI, FT, AU, FI, RP, AF,
@@ -60,6 +60,27 @@ def _pagination(query: SearchQuery) -> tuple[Action, ...]:
     return tuple(actions)
 
 
+def _sort(query: SearchQuery) -> tuple[Action, ...]:
+    selector = SORT.get(query.sort)
+    if selector is None or query.sort == "relevance":
+        return ()
+    return (
+        # Reset to relevance first: the grid remembers the direction of the
+        # previous sort, and a direct click would toggle it unpredictably.
+        Action(
+            "click", {"selector": SORT["relevance"]}, timeout_ms=CLICK_TIMEOUT_MS
+        ),
+        Action("sleep", {"ms": 900}, timeout_ms=2_000),
+        Action("click", {"selector": selector}, timeout_ms=CLICK_TIMEOUT_MS),
+        Action("sleep", {"ms": 1200}, timeout_ms=2_000),
+        Action(
+            "wait_for",
+            {"selector": SEARCH_READY, "timeout_ms": FILTER_WAIT_MS},
+            timeout_ms=FILTER_WAIT_MS,
+        ),
+    )
+
+
 def _page_size(query: SearchQuery) -> tuple[Action, ...]:
     """Ask the result grid for 50 rows when the caller wants more than 20."""
 
@@ -80,8 +101,6 @@ def _page_size(query: SearchQuery) -> tuple[Action, ...]:
 def build(query: SearchQuery) -> Plan:
     if query.source_types:
         raise ChannelError("source-type filters are not implemented for the cnki channel yet")
-    if query.sort != "relevance":
-        raise ChannelError("custom sort is not implemented for the cnki channel yet")
 
     # A unique parameter forces a real navigation, so the result grid always
     # starts from its default state (20 rows, page 1).
@@ -135,6 +154,7 @@ def build(query: SearchQuery) -> Plan:
             {"selector": SEARCH_READY, "timeout_ms": WAIT_TIMEOUT_MS},
             timeout_ms=WAIT_TIMEOUT_MS,
         ),
+        *_sort(query),
         *_page_size(query),
         *_pagination(query),
         Action("read_html", timeout_ms=READ_TIMEOUT_MS),

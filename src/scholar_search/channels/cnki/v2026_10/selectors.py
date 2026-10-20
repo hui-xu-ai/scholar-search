@@ -23,6 +23,14 @@ SEARCH = {
     "page_size_50": "#perPageDiv li[data-val='50']",
 }
 
+# Result-grid sort tabs (#orderList). Relevance is clicked first to reset the
+# remembered direction, so a date/citation sort always lands on descending.
+SORT = {
+    "relevance": "#orderList li[data-sort='FFD']",
+    "date": "#orderList li[data-sort='PT']",
+    "citation": "#orderList li[data-sort='CF']",
+}
+
 EXPERT = {
     "page": "https://kns.cnki.net/kns8s/AdvSearch?type=expert",
     "input": "textarea.majorSearch",
