@@ -93,6 +93,17 @@ def test_page_two_adds_a_page_turn() -> None:
     assert plan.actions[-1].verb == "read_html"
 
 
+def test_unsupported_filters_fail_loudly() -> None:
+    import pytest
+
+    from scholar_search.core.errors import ChannelError
+
+    with pytest.raises(ChannelError, match="year"):
+        plan_search.build(SearchQuery(text="IPMC", year_from=2020))
+    with pytest.raises(ChannelError, match="sort"):
+        plan_search.build(SearchQuery(text="IPMC", sort="date"))
+
+
 def test_parses_recorded_live_page() -> None:
     html = FIXTURE.read_text(encoding="utf-8")
     page = get_channel().parse_search(html, query=SearchQuery(text="IPMC"))

@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 
 from ....core.contracts import Action, Plan, SearchQuery
+from ....core.errors import ChannelError
 from .selectors import EXPERT, SEARCH, SEARCH_PAGE, SEARCH_READY
 
 _EXPRESSION = re.compile(
@@ -52,6 +53,13 @@ def _pagination(query: SearchQuery) -> tuple[Action, ...]:
 
 
 def build(query: SearchQuery) -> Plan:
+    if query.year_from is not None or query.year_to is not None:
+        raise ChannelError("year filters are not implemented for the cnki channel yet")
+    if query.source_types:
+        raise ChannelError("source-type filters are not implemented for the cnki channel yet")
+    if query.sort != "relevance":
+        raise ChannelError("custom sort is not implemented for the cnki channel yet")
+
     if is_expression(query.text):
         actions = (
             Action("goto", {"url": EXPERT["page"]}, timeout_ms=NAV_TIMEOUT_MS),
