@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from urllib.parse import quote
+from pathlib import Path
 
 from scholar_search.channels.cnki.v2026_10 import get_channel, plan_search
 from scholar_search.core.contracts import SearchQuery
+
+FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_search_2026_10.html"
 
 SEARCH_HTML = """
 <html><body>
@@ -57,14 +59,33 @@ def test_manifest_declares_search_and_detail() -> None:
     assert "journal" not in channel.manifest.capabilities
 
 
-def test_search_plan_targets_cnki() -> None:
-    query = SearchQuery(text="人工智能", channel="cnki")
-    plan = plan_search.build(query)
+def test_search_plan_drives_the_search_box() -> None:
+    plan = plan_search.build(SearchQuery(text="人工智能", channel="cnki"))
     assert plan.purpose == "search"
-    assert plan.actions[0].verb == "goto"
-    url = str(plan.actions[0].params["url"])
-    assert url.startswith("https://kns.cnki.net/")
-    assert quote("人工智能") in url
+    assert [action.verb for action in plan.actions] == [
+        "goto",
+        "wait_for",
+        "type",
+        "click",
+        "wait_for",
+        "read_html",
+    ]
+    assert plan.actions[0].params["url"] == "https://kns.cnki.net/kns8s/search"
+    assert plan.actions[2].params["text"] == "人工智能"
+
+
+def test_parses_recorded_live_page() -> None:
+    html = FIXTURE.read_text(encoding="utf-8")
+    page = get_channel().parse_search(html, query=SearchQuery(text="IPMC"))
+
+    assert page.total == 595
+    assert page.page == 1
+    assert page.page_count == 30
+    assert len(page.records) == 2
+    assert page.records[0].title
+    assert page.records[0].url is not None
+    assert page.records[0].url.startswith("https://kns.cnki.net/kcms2/article/abstract")
+    assert page.records[0].source
 
 
 def test_parse_search_extracts_rows() -> None:

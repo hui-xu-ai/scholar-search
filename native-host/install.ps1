@@ -2,11 +2,12 @@
 .SYNOPSIS
   Register the scholar-search native messaging host for Edge and Chrome.
 .DESCRIPTION
-  Writes a launcher, a native messaging manifest, and the per-user registry
-  key under HKCU. No elevation required. Run with -Uninstall to remove.
+  Builds the launcher executable, writes the native messaging manifest, and
+  registers the per-user key under HKCU. No elevation required.
+  Use -Uninstall to remove the registration.
 #>
 param(
-  [Parameter(Mandatory = $true)][string]$ExtensionId,
+  [string]$ExtensionId = "gmaimbocfjkolcpljeekjcomakipoaph",
   [string]$Python,
   [switch]$Uninstall
 )
@@ -21,14 +22,15 @@ if (-not $Python) {
 }
 
 $manifestPath = Join-Path $here "$hostName.json"
-$launcher = Join-Path $here "run-host.cmd"
+$launcher = Join-Path $here "scholar-host.exe"
+$pythonPathFile = Join-Path $here "python-path.txt"
 
 if ($Uninstall) {
   foreach ($browser in @("Microsoft\Edge", "Google\Chrome")) {
     $key = "HKCU:\Software\$browser\NativeMessagingHosts\$hostName"
     if (Test-Path $key) { Remove-Item $key -Recurse -Force }
   }
-  Remove-Item $manifestPath, $launcher -Force -ErrorAction SilentlyContinue
+  Remove-Item $manifestPath, $launcher, $pythonPathFile -Force -ErrorAction SilentlyContinue
   Write-Host "removed $hostName"
   exit 0
 }
@@ -37,10 +39,14 @@ if (-not (Test-Path $Python)) {
   throw "python not found: $Python (pass -Python <path>)"
 }
 
-@"
-@echo off
-"$Python" -u "$here\main.py"
-"@ | Set-Content -Path $launcher -Encoding ascii
+$csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+if (-not (Test-Path $launcher)) {
+  if (-not (Test-Path $csc)) {
+    throw "csc.exe not found; cannot build $launcher"
+  }
+  & $csc /nologo /target:exe /out:$launcher (Join-Path $here "launcher.cs") | Out-Null
+}
+Set-Content -Path $pythonPathFile -Value $Python -Encoding ascii
 
 $manifest = @{
   name            = $hostName

@@ -28,6 +28,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - stdio transport and loopback HTTP transport with bearer token and Host check.
 - `scholar-search status` reports channels, cooldown, quota and bridge readiness.
 - 51 tests; ruff and mypy --strict clean.
+- Verified selectors against a live CNKI page (595 hits, 20 rows); trimmed fixture in `tests/fixtures`.
+- Search plan now drives the search box (goto → type → click → wait → read) instead of a static URL.
+- Native host launcher is a compiled .exe: Edge refuses to start `.cmd` hosts.
+- Host runtime files (endpoint, log) moved to the per-user temp directory, because browsers launch native hosts at low integrity and `AppData\Local` is not writable there.
+- Single-instance check and per-connection replies fix duplicate-host races.
+- 52 tests.
 
 
 

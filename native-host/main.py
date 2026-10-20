@@ -21,14 +21,14 @@ from pathlib import Path
 
 from scholar_search.adapters.bridge.host import BridgeHost
 from scholar_search.adapters.bridge.policy import DEFAULT_DOMAINS
-from scholar_search.core.config import app_home
+from scholar_search.core.config import ensure_host_runtime, host_runtime_dir
 
 HOST_NAME = "com.scholar.search"
 ENDPOINT_NAME = "bridge.json"
 
 
 def write_endpoint(port: int, token: str) -> Path:
-    path = app_home() / ENDPOINT_NAME
+    path = host_runtime_dir() / ENDPOINT_NAME
     payload = {"port": port, "token": token, "pid": os.getpid(), "started": time.time()}
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
@@ -108,26 +108,66 @@ def start_tcp_server(
     return server, port
 
 
-def main() -> int:
-    host = BridgeHost()
-    token = secrets.token_urlsafe(24)
-    domains = tuple(os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",")) or DEFAULT_DOMAINS
-    domains = tuple(domain for domain in domains if domain)
-
-    server, port = start_tcp_server(host, token, domains)
-    endpoint = write_endpoint(port, token)
-    print(
-        f"scholar-search host ready: 127.0.0.1:{port} ({endpoint})",
-        file=sys.stderr,
-        flush=True,
-    )
-
+def _log(message: str) -> None:
+    """Diagnostics go to a file because Chrome discards host stderr."""
     try:
-        host.serve_extension()
-    finally:
-        clear_endpoint(endpoint)
-        server.close()
-    return 0
+        path = host_runtime_dir() / "logs" / "host.log"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}\n")
+    except OSError:
+        pass
+
+
+def host_already_running() -> bool:
+    """Return True when another host still answers on the recorded port."""
+
+    path = host_runtime_dir() / ENDPOINT_NAME
+    try:
+        info = json.loads(path.read_text(encoding="utf-8"))
+        port = int(info["port"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+            return True
+    except OSError:
+        return False
+
+
+def main() -> int:
+    try:
+        ensure_host_runtime()
+        if host_already_running():
+            _log(f"another host is alive; exiting pid={os.getpid()}")
+            return 0
+        _log(f"start pid={os.getpid()} cwd={os.getcwd()}")
+        host = BridgeHost()
+        token = secrets.token_urlsafe(24)
+        domains = tuple(os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",")) or DEFAULT_DOMAINS
+        domains = tuple(domain for domain in domains if domain)
+
+        server, port = start_tcp_server(host, token, domains)
+        endpoint = write_endpoint(port, token)
+        _log(f"ready port={port} endpoint={endpoint}")
+        print(
+            f"scholar-search host ready: 127.0.0.1:{port} ({endpoint})",
+            file=sys.stderr,
+            flush=True,
+        )
+
+        try:
+            host.serve_extension()
+        finally:
+            _log("extension channel closed; shutting down")
+            clear_endpoint(endpoint)
+            server.close()
+        return 0
+    except BaseException as error:
+        import traceback
+
+        _log("fatal: " + "".join(traceback.format_exception(error)))
+        return 1
 
 
 if __name__ == "__main__":

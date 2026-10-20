@@ -5,7 +5,7 @@ from __future__ import annotations
 from .adapters.bridge import BridgeAdapter
 from .core.audit import AuditLog
 from .core.cache import Cache
-from .core.config import app_home
+from .core.config import host_runtime_dir
 from .core.contracts import BrowserAdapter
 from .core.planner import Planner
 from .core.policy import PolicyEngine
@@ -20,7 +20,7 @@ def build_service() -> ScholarService:
     risk = RiskGuard()
     audit = AuditLog()
     cache = Cache()
-    endpoint = app_home() / "bridge.json"
+    endpoint = host_runtime_dir() / "bridge.json"
 
     def adapter_factory() -> BridgeAdapter:
         return BridgeAdapter(endpoint=endpoint)

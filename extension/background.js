@@ -10,11 +10,13 @@ const ALLOWED_HOST = /(^|\.)cnki\.net$/i;
 let port = null;
 
 function connect() {
+  if (port) return;
   try {
-    port = chrome.runtime.connectNative(HOST_NAME);
-    port.onMessage.addListener(onHostMessage);
-    port.onDisconnect.addListener(() => {
-      port = null;
+    const channel = chrome.runtime.connectNative(HOST_NAME);
+    port = channel;
+    channel.onMessage.addListener((message) => onHostMessage(message, channel));
+    channel.onDisconnect.addListener(() => {
+      if (port === channel) port = null;
       setTimeout(connect, 3000);
     });
   } catch (error) {
@@ -45,12 +47,15 @@ function waitComplete(tabId, timeoutMs = 15000) {
   });
 }
 
-async function onHostMessage(message) {
+async function onHostMessage(message, channel) {
   if (!message || message.type !== "action") return;
 
   const { id, action, params } = message;
-  const reply = (payload) =>
-    port && port.postMessage({ type: "action_result", id, ...payload });
+  console.log("scholar-search: action", action);
+  const reply = (payload) => {
+    console.log("scholar-search: reply", payload.ok, payload.error || "");
+    channel.postMessage({ type: "action_result", id, ...payload });
+  };
 
   try {
     const tab = await activeTab();
@@ -80,8 +85,4 @@ async function onHostMessage(message) {
 
 chrome.runtime.onInstalled.addListener(connect);
 chrome.runtime.onStartup.addListener(connect);
-chrome.alarms.create("keepalive", { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "keepalive" && !port) connect();
-});
 connect();

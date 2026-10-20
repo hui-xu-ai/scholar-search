@@ -1,25 +1,13 @@
-"""Build the CNKI one-box search plan."""
+"""Build the CNKI search plan.
+
+The one-box URL alone does not run a search in the 2026.10 UI; the page must be
+driven through its input and submit button.
+"""
 
 from __future__ import annotations
 
-from urllib.parse import urlencode
-
 from ....core.contracts import Action, Plan, SearchQuery
-from .selectors import SEARCH_ENDPOINT, SEARCH_READY
-
-DEFAULT_CROSSIDS = (
-    "YSTT4HG0,LSTPFY1C,EMRPGLPA,JUP3MUPD,MPMFIG1A,WQ0UVIAA,"
-    "BLZOG7CK,PWFIRAGL,NLBO1Z6R,NN3FJMUV"
-)
-
-
-def build_url(query: SearchQuery) -> str:
-    params = {
-        "kw": query.text,
-        "korder": "SU",
-        "crossids": DEFAULT_CROSSIDS,
-    }
-    return f"{SEARCH_ENDPOINT}?{urlencode(params)}"
+from .selectors import SEARCH, SEARCH_PAGE, SEARCH_READY
 
 
 def build(query: SearchQuery) -> Plan:
@@ -27,8 +15,11 @@ def build(query: SearchQuery) -> Plan:
         channel="cnki",
         purpose="search",
         actions=(
-            Action("goto", {"url": build_url(query)}),
-            Action("wait_for", {"selector": SEARCH_READY, "timeout_ms": 15_000}),
+            Action("goto", {"url": SEARCH_PAGE}),
+            Action("wait_for", {"selector": SEARCH["input"], "timeout_ms": 15_000}),
+            Action("type", {"selector": SEARCH["input"], "text": query.text}),
+            Action("click", {"selector": SEARCH["submit"]}),
+            Action("wait_for", {"selector": SEARCH_READY, "timeout_ms": 20_000}),
             Action("read_html"),
         ),
     )

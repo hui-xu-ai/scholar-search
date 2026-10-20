@@ -1,12 +1,14 @@
 """CSS selectors for the CNKI 2026.10 layout.
 
-Every selector here is a guess that must be verified against a recorded page.
-Change them only together with a new fixture.
+Verified against a live page on 2026-10-20 (see tests/fixtures). Change them
+only together with a new fixture.
 """
 
 from __future__ import annotations
 
 SEARCH = {
+    "input": "input.search-input",
+    "submit": "input.search-btn",
     "row": ".result-table-list tbody tr",
     "title_link": "td.name a.fz14",
     "authors": "td.author a.KnowledgeNetLink",
@@ -29,6 +31,6 @@ DETAIL = {
     "top_tip": ".top-tip",
 }
 
-SEARCH_ENDPOINT = "https://kns.cnki.net/kns8s/defaultresult/index"
-DETAIL_READY = "#ChDivSummary, h1"
+SEARCH_PAGE = "https://kns.cnki.net/kns8s/search"
 SEARCH_READY = ".result-table-list tbody tr"
+DETAIL_READY = "#ChDivSummary, h1"

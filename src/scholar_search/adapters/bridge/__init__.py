@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from ...core.config import app_home
+from ...core.config import host_runtime_dir
 from ...core.contracts import Action, ActionOutcome
 
 
@@ -25,7 +25,7 @@ class BridgeAdapter:
         *,
         timeout_s: float = 15.0,
     ) -> None:
-        self._endpoint = endpoint or (app_home() / "bridge.json")
+        self._endpoint = endpoint or (host_runtime_dir() / "bridge.json")
         self._timeout = timeout_s
         self._socket: socket.socket | None = None
         self._reader: Any = None
