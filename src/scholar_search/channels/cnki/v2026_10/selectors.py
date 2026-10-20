@@ -1,7 +1,6 @@
 """CSS selectors for the CNKI 2026.10 layout.
 
-Verified against a live page on 2026-10-20 (see tests/fixtures). Change them
-only together with a new fixture.
+Verified against live pages on 2026-10-20. Change them only with a fixture.
 """
 
 from __future__ import annotations
@@ -19,6 +18,13 @@ SEARCH = {
     "checkbox": "input.cbItem",
     "total": ".pagerTitleCell",
     "page_marker": ".countPageMark",
+    "next_page": "#PageNext",
+}
+
+EXPERT = {
+    "page": "https://kns.cnki.net/kns8s/AdvSearch?type=expert",
+    "input": "textarea.majorSearch",
+    "submit": "input.btn-search",
 }
 
 DETAIL = {

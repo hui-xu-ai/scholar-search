@@ -34,6 +34,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - Host runtime files (endpoint, log) moved to the per-user temp directory, because browsers launch native hosts at low integrity and `AppData\Local` is not writable there.
 - Single-instance check and per-connection replies fix duplicate-host races.
 - 52 tests.
+- Expert search: field expressions (`SU=`, `TI=`, `KY=`, `AU=` …) go through `AdvSearch?type=expert`.
+- Pagination: `page=2..3` clicks `#PageNext` and waits for the next result batch.
+- Search limit is honoured (`limit` was previously ignored).
+- Cache keys include the package version so parser changes do not serve stale hits.
+- Plan budget stays under 120s via per-action timeouts; page capped at 3.
+- 56 tests; live-verified: keyword 595 hits, expert expression 57 hits, page 2 distinct.
 
 
 

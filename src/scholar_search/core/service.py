@@ -12,6 +12,7 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Any, Literal
 
+from .. import __version__
 from .cache import Cache
 from .contracts import (
     ActionOutcome,
@@ -141,7 +142,13 @@ class ScholarService:
 
 def _key(kind: str, spec: ChannelSpec, payload: Any) -> str:
     raw = json.dumps(
-        {"kind": kind, "channel": spec.name, "site": spec.site_version, "q": payload},
+        {
+            "kind": kind,
+            "v": __version__,
+            "channel": spec.name,
+            "site": spec.site_version,
+            "q": payload,
+        },
         sort_keys=True,
         ensure_ascii=False,
         default=str,

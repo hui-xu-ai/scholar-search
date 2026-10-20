@@ -102,6 +102,8 @@ class SearchQuery:
             raise ValueError("search text must not be empty")
         if self.page < 1:
             raise ValueError("page must be >= 1")
+        if self.page > 3:
+            raise ValueError("page must be <= 3 (one page turn per extra page)")
         if self.limit < 1 or self.limit > 50:
             raise ValueError("limit must be within 1..50")
         if self.year_from and self.year_to and self.year_to < self.year_from:

@@ -74,6 +74,25 @@ def test_search_plan_drives_the_search_box() -> None:
     assert plan.actions[2].params["text"] == "人工智能"
 
 
+def test_expression_plan_uses_expert_page() -> None:
+    expression = "SU='IPMC' and KY='驱动器'"
+    plan = plan_search.build(SearchQuery(text=expression, channel="cnki"))
+
+    assert plan.actions[0].params["url"] == "https://kns.cnki.net/kns8s/AdvSearch?type=expert"
+    assert plan.actions[2].params["text"] == expression
+    assert plan.actions[2].params["selector"] == "textarea.majorSearch"
+    assert plan.actions[3].params["selector"] == "input.btn-search"
+
+
+def test_page_two_adds_a_page_turn() -> None:
+    plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", page=2))
+
+    clicks = [action for action in plan.actions if action.verb == "click"]
+    assert len(clicks) == 2
+    assert clicks[1].params["selector"] == "#PageNext"
+    assert plan.actions[-1].verb == "read_html"
+
+
 def test_parses_recorded_live_page() -> None:
     html = FIXTURE.read_text(encoding="utf-8")
     page = get_channel().parse_search(html, query=SearchQuery(text="IPMC"))

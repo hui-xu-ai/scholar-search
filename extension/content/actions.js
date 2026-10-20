@@ -31,6 +31,7 @@ async function run(action, params) {
       if (params.clear !== false) element.value = "";
       element.value = params.text;
       element.dispatchEvent(new Event("input", { bubbles: true }));
+      element.dispatchEvent(new Event("change", { bubbles: true }));
       return { ok: true, data: {} };
     }
     case "click": {
