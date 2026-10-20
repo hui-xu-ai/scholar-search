@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-10-21
+
+### Fixed
+
+- Detail parser reads volume/issue/pages from the `.top-first` citation line
+  (`力学学报 . 2022 ,54 (01) : 184-195`); verified by fixture replay and a live MCP call.
+- Added `tests/fixtures/cnki_detail_print_2026_10.html` and a regression test (59 tests).
+
 ## [0.2.0] - 2026-10-20
 
 ### Added

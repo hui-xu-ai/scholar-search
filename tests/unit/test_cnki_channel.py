@@ -7,6 +7,9 @@ from scholar_search.core.contracts import SearchQuery
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_search_2026_10.html"
 DETAIL_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_2026_10.html"
+PRINT_FIXTURE = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_print_2026_10.html"
+)
 
 SEARCH_HTML = """
 <html><body>
@@ -155,3 +158,15 @@ def test_parse_detail_from_recorded_page() -> None:
     assert record.year == 2026
     assert len(record.keywords) == 6
     assert record.abstract and "IPMC" in record.abstract
+
+
+def test_parse_detail_extracts_print_issue() -> None:
+    html = PRINT_FIXTURE.read_text(encoding="utf-8")
+    record = get_channel().parse_detail(html, url="https://kns.cnki.net/x")
+
+    assert record.title.startswith("软体连续机械臂")
+    assert record.source == "力学学报"
+    assert record.year == 2022
+    assert record.volume == "54"
+    assert record.issue == "01"
+    assert record.pages == "184-195"

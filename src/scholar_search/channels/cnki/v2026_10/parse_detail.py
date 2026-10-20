@@ -21,6 +21,13 @@ _YEAR = re.compile(r"(19|20)\d{2}")
 _AFFILIATION_MARK = re.compile(r"[\d,，\s]+$")
 _TIME_KEYS = ("在线公开时间", "网络出版时间", "出版时间", "发表时间")
 
+# Print issues put the citation line in ``.top-first``:
+#   力学学报 . 2022 ,54 (01) : 184-195 查看该刊数据库收录来源
+_TOP_LINE = re.compile(
+    r"\.\s*(?P<year>(?:19|20)\d{2})\s*,\s*(?P<volume>\d+)\s*"
+    r"(?:\((?P<issue>[^)]*)\))?\s*:\s*(?P<pages>[0-9\-–,]+)"
+)
+
 
 def _text(node: Tag | None) -> str | None:
     if node is None:
@@ -68,12 +75,13 @@ def _authors(soup: BeautifulSoup) -> tuple[list[str], str | None]:
     return authors, institution
 
 
-def _source(soup: BeautifulSoup) -> str | None:
+def _source(soup: BeautifulSoup) -> tuple[str | None, str]:
     node = soup.select_one(".top-first")
     if node is None:
-        return None
+        return None, ""
     value = node.get_text(" ", strip=True)
-    return value.split(" . ")[0].strip() or None
+    source = value.split(" . ")[0].strip() or None
+    return source, value
 
 
 def parse(html: str, url: str) -> Record:
@@ -95,6 +103,15 @@ def parse(html: str, url: str) -> Record:
         match = _YEAR.search(published)
         year = int(match.group()) if match else None
 
+    source, top_line = _source(soup)
+    volume = issue = pages = None
+    match = _TOP_LINE.search(top_line)
+    if match:
+        year = year or int(match.group("year"))
+        volume = match.group("volume")
+        issue = match.group("issue")
+        pages = match.group("pages")
+
     keywords = [
         link.get_text(strip=True).strip(";；,，、")
         for link in soup.select("p.keywords a")
@@ -106,11 +123,11 @@ def parse(html: str, url: str) -> Record:
         title=title,
         authors=authors,
         institution=institution,
-        source=_source(soup),
+        source=source,
         year=year,
-        volume=_pick(rows, "卷"),
-        issue=_pick(rows, "期"),
-        pages=_pick(rows, "页"),
+        volume=volume or _pick(rows, "卷"),
+        issue=issue or _pick(rows, "期"),
+        pages=pages or _pick(rows, "页"),
         doi=doi,
         abstract=_text(soup.select_one(DETAIL["abstract"])),
         keywords=keywords,
