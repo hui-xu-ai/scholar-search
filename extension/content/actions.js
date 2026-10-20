@@ -52,11 +52,14 @@ async function run(action, params) {
       // The captcha SDK preloads hidden DOM; only an on-screen widget counts.
       const widget = document.querySelector("#tcaptcha_transform_dy");
       const visible = Boolean(widget && widget.getBoundingClientRect().top >= 0);
+      const bodyText = document.body ? document.body.innerText : "";
+      const authGate = /手机号认证|获取短信验证码|请尽快完成认证/.test(bodyText);
       return {
         ok: true,
         data: {
           html: html.slice(0, MAX_HTML_CHARS),
           captcha_visible: visible,
+          auth_required: authGate,
           title: document.title,
         },
       };

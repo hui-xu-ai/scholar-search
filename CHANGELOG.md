@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] - 2026-10-21
+
+### Changed
+
+- Year filters are disabled: the result-page year control (`#btnFilterYear`) triggered an
+  account verification gate (“手机号认证”) during a live test. `year_from` / `year_to`
+  now fail with an explicit error instead of touching that control.
+- Risk guard detects account verification gates via the content script (`auth_required`)
+  and reports `login_redirect`, so a gate cannot be mistaken for an empty result page.
+- Incident recorded in `docs/incidents.md`; 62 tests.
+
 ## [0.2.1] - 2026-10-21
 
 ### Fixed

@@ -88,6 +88,10 @@ class RiskGuard:
         if outcome.data.get("captcha_visible") is True:
             return RiskSignal.CAPTCHA
 
+        # Account verification gates ("手机号认证") are a login wall in disguise.
+        if outcome.data.get("auth_required") is True:
+            return RiskSignal.LOGIN_REDIRECT
+
         # Verification interstitials keep a short, distinctive document title.
         title = outcome.data.get("title")
         if isinstance(title, str) and any(

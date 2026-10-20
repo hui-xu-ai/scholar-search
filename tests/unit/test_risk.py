@@ -45,6 +45,11 @@ def test_verification_page_title_is_a_risk(tmp_path: Path) -> None:
     assert signal is RiskSignal.VERIFY_REDIRECT
 
 
+def test_account_verification_gate_is_a_login_wall(tmp_path: Path) -> None:
+    signal = guard(tmp_path).inspect(outcome(data={"auth_required": True}))
+    assert signal is RiskSignal.LOGIN_REDIRECT
+
+
 def test_detects_verify_redirect(tmp_path: Path) -> None:
     signal = guard(tmp_path).inspect(
         outcome(url="https://kns.cnki.net/verify/home?x=1")

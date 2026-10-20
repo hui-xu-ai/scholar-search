@@ -97,15 +97,30 @@ def test_page_two_adds_a_page_turn() -> None:
     assert plan.actions[-1].verb == "read_html"
 
 
+def test_year_filters_are_rejected() -> None:
+    # The site's year control triggered an account verification gate; refuse.
+    import pytest
+
+    from scholar_search.core.errors import ChannelError
+
+    with pytest.raises(ChannelError, match="year filters are disabled"):
+        plan_search.build(SearchQuery(text="IPMC", year_from=2020, year_to=2021))
+
+
 def test_unsupported_filters_fail_loudly() -> None:
     import pytest
 
     from scholar_search.core.errors import ChannelError
 
-    with pytest.raises(ChannelError, match="year"):
-        plan_search.build(SearchQuery(text="IPMC", year_from=2020))
     with pytest.raises(ChannelError, match="sort"):
         plan_search.build(SearchQuery(text="IPMC", sort="date"))
+    with pytest.raises(ChannelError, match="source-type"):
+        plan_search.build(SearchQuery(text="IPMC", source_types=("journal",)))
+
+
+def test_plan_stays_within_budget() -> None:
+    plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", page=3))
+    assert sum(action.timeout_ms for action in plan.actions) <= 120_000
 
 
 def test_parses_recorded_live_page() -> None:
