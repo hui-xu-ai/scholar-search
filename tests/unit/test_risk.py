@@ -40,6 +40,11 @@ def test_hidden_sdk_dom_is_not_a_captcha(tmp_path: Path) -> None:
     assert guard(tmp_path).inspect(outcome(data={"captcha_visible": False})) is None
 
 
+def test_verification_page_title_is_a_risk(tmp_path: Path) -> None:
+    signal = guard(tmp_path).inspect(outcome(data={"title": "安全验证"}))
+    assert signal is RiskSignal.VERIFY_REDIRECT
+
+
 def test_detects_verify_redirect(tmp_path: Path) -> None:
     signal = guard(tmp_path).inspect(
         outcome(url="https://kns.cnki.net/verify/home?x=1")

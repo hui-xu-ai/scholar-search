@@ -6,6 +6,7 @@ from scholar_search.channels.cnki.v2026_10 import get_channel, plan_search
 from scholar_search.core.contracts import SearchQuery
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_search_2026_10.html"
+DETAIL_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_2026_10.html"
 
 SEARCH_HTML = """
 <html><body>
@@ -139,18 +140,18 @@ def test_parse_search_extracts_rows() -> None:
     assert page.records[1].url == "https://kns.cnki.net/kcms2/article/abstract?v=def"
 
 
-def test_parse_detail_extracts_metadata() -> None:
-    channel = get_channel()
-    record = channel.parse_detail(
-        DETAIL_HTML, url="https://kns.cnki.net/kcms2/article/abstract?v=abc"
+def test_parse_detail_from_recorded_page() -> None:
+    html = DETAIL_FIXTURE.read_text(encoding="utf-8")
+    record = get_channel().parse_detail(
+        html, url="https://kns.cnki.net/kcms2/article/abstract?v=abc"
     )
 
-    assert record.title == "测试论文标题"
-    assert record.authors == ["张三", "李四"]
-    assert record.institution == "某大学某学院"
-    assert record.abstract == "这是摘要正文。"
-    assert record.keywords == ["关键词一", "关键词二"]
-    assert record.doi == "10.16290/j.cnki.1674-5205.2026.06.008"
-    assert record.source == "测试期刊"
+    assert record.title.startswith("受马铃薯")
+    assert not record.title.endswith("附视频")
+    assert record.authors == ["王红", "郭小溪", "杨亮"]
+    assert record.institution is not None and "延安大学" in record.institution
+    assert record.source == "复合材料学报"
+    assert record.doi == "10.13801/j.cnki.fhclxb.20261013.003"
     assert record.year == 2026
-    assert record.issue == "06"
+    assert len(record.keywords) == 6
+    assert record.abstract and "IPMC" in record.abstract

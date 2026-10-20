@@ -28,13 +28,13 @@ EXPERT = {
 }
 
 DETAIL = {
-    "title": "h1",
-    "authors": ".author a, #authorpart a",
-    "institution": ".orgn, #organization",
+    "title": ".wx-tit h1",
+    "authors": "h3.author",
+    "institution": "h3.author",
     "abstract": "#ChDivSummary",
-    "keywords": ".keywords a, #keywords a",
-    "doi": ".doi",
-    "top_tip": ".top-tip",
+    "keywords": "p.keywords a",
+    "doi": ".top-space .rowtit",
+    "top_tip": ".doc-top",
 }
 
 SEARCH_PAGE = "https://kns.cnki.net/kns8s/search"

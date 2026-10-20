@@ -54,7 +54,11 @@ async function run(action, params) {
       const visible = Boolean(widget && widget.getBoundingClientRect().top >= 0);
       return {
         ok: true,
-        data: { html: html.slice(0, MAX_HTML_CHARS), captcha_visible: visible },
+        data: {
+          html: html.slice(0, MAX_HTML_CHARS),
+          captcha_visible: visible,
+          title: document.title,
+        },
       };
     }
     case "read_text": {

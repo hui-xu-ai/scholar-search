@@ -119,28 +119,12 @@ def _log(message: str) -> None:
         pass
 
 
-def host_already_running() -> bool:
-    """Return True when another host still answers on the recorded port."""
-
-    path = host_runtime_dir() / ENDPOINT_NAME
-    try:
-        info = json.loads(path.read_text(encoding="utf-8"))
-        port = int(info["port"])
-    except (OSError, ValueError, KeyError, TypeError):
-        return False
-    try:
-        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
-            return True
-    except OSError:
-        return False
-
-
 def main() -> int:
     try:
         ensure_host_runtime()
-        if host_already_running():
-            _log(f"another host is alive; exiting pid={os.getpid()}")
-            return 0
+        # Every native connection needs its own host: the extension reconnects
+        # on worker restarts, and refusing the new instance leaves the browser
+        # with a dead port while the old process still holds the endpoint.
         _log(f"start pid={os.getpid()} cwd={os.getcwd()}")
         host = BridgeHost()
         token = secrets.token_urlsafe(24)

@@ -87,6 +87,13 @@ class RiskGuard:
         # screen; scanning raw HTML would match the SDK's hidden preloaded DOM.
         if outcome.data.get("captcha_visible") is True:
             return RiskSignal.CAPTCHA
+
+        # Verification interstitials keep a short, distinctive document title.
+        title = outcome.data.get("title")
+        if isinstance(title, str) and any(
+            marker in title for marker in ("安全验证", "验证中心")
+        ):
+            return RiskSignal.VERIFY_REDIRECT
         return None
 
     # -- tripping ------------------------------------------------------

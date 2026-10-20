@@ -1,4 +1,10 @@
-"""Parse a CNKI article detail page."""
+"""Parse a CNKI article detail page (2026.10 layout).
+
+The header is a list of ``li.top-space`` rows (DOI, 专辑, 专题, 分类号,
+网络出版时间, …), authors live in ``h3.author``, and the abstract is
+``#ChDivSummary``. Volume/issue/pages only exist for print issues; online-first
+articles have a publication date instead.
+"""
 
 from __future__ import annotations
 
@@ -10,11 +16,10 @@ from ....core.contracts import Record
 from ....core.errors import ParseError
 from .selectors import DETAIL
 
-_JOURNAL = re.compile(r"《\s*(.+?)\s*》")
-_ISSUE = re.compile(r"(\d{4})\s*年\s*(\d+)\s*期")
-_VOLUME = re.compile(r"第\s*(\d+)\s*卷")
-_PAGES = re.compile(r"(\d+\s*[-–—]\s*\d+)")
-_DOI = re.compile(r"10\.\d{4,9}/[^\s，。；;]+")
+_SUFFIX = re.compile(r"\s*(?:附视频|[（(](?:视频|网络首发|优先出版)[）)])\s*$")
+_YEAR = re.compile(r"(19|20)\d{2}")
+_AFFILIATION_MARK = re.compile(r"[\d,，\s]+$")
+_TIME_KEYS = ("在线公开时间", "网络出版时间", "出版时间", "发表时间")
 
 
 def _text(node: Tag | None) -> str | None:
@@ -24,57 +29,90 @@ def _text(node: Tag | None) -> str | None:
     return value or None
 
 
-def _first_text(soup: BeautifulSoup, selector: str) -> str | None:
-    for part in selector.split(","):
-        node = soup.select_one(part.strip())
-        if node is not None:
-            value = _text(node)
-            if value:
-                return value
+def _clean_title(value: str) -> str:
+    return _SUFFIX.sub("", value).strip()
+
+
+def _rows(soup: BeautifulSoup) -> dict[str, str]:
+    rows: dict[str, str] = {}
+    for item in soup.select("li.top-space"):
+        label = item.select_one(".rowtit")
+        value = item.select_one("p")
+        if label is None or value is None:
+            continue
+        key = re.sub(r"[：:\s]", "", label.get_text())
+        text = value.get_text(" ", strip=True)
+        if key and text:
+            rows[key] = text
+    return rows
+
+
+def _pick(rows: dict[str, str], *needles: str) -> str | None:
+    for key, value in rows.items():
+        if all(needle in key for needle in needles):
+            return value
     return None
 
 
-def _all_text(soup: BeautifulSoup, selector: str) -> list[str]:
-    values: list[str] = []
-    for part in selector.split(","):
-        for node in soup.select(part.strip()):
-            value = _text(node)
-            if value:
-                values.append(value)
-        if values:
-            break
-    return values
+def _authors(soup: BeautifulSoup) -> tuple[list[str], str | None]:
+    blocks = soup.select("h3.author")
+    if not blocks:
+        return [], None
+
+    authors: list[str] = []
+    for link in blocks[0].select("a"):
+        name = _AFFILIATION_MARK.sub("", link.get_text(strip=True))
+        if name and "@" not in name:
+            authors.append(name)
+    institution = _text(blocks[1]) if len(blocks) > 1 else None
+    return authors, institution
+
+
+def _source(soup: BeautifulSoup) -> str | None:
+    node = soup.select_one(".top-first")
+    if node is None:
+        return None
+    value = node.get_text(" ", strip=True)
+    return value.split(" . ")[0].strip() or None
 
 
 def parse(html: str, url: str) -> Record:
     soup = BeautifulSoup(html, "lxml")
 
-    title = _first_text(soup, DETAIL["title"])
-    if not title:
+    title_node = soup.select_one(DETAIL["title"]) or soup.select_one("h1")
+    raw_title = _text(title_node)
+    if not raw_title:
         raise ParseError("detail page has no title")
+    title = _clean_title(raw_title)
 
-    top_tip = _first_text(soup, DETAIL["top_tip"]) or ""
-    journal_match = _JOURNAL.search(top_tip)
-    issue_match = _ISSUE.search(top_tip)
-    volume_match = _VOLUME.search(top_tip)
-    pages_match = _PAGES.search(top_tip)
+    authors, institution = _authors(soup)
+    rows = _rows(soup)
 
-    abstract = _first_text(soup, DETAIL["abstract"])
-    doi_text = _first_text(soup, DETAIL["doi"]) or ""
-    doi_match = _DOI.search(doi_text)
+    doi = _pick(rows, "DOI")
+    published = next((rows[key] for key in _TIME_KEYS if key in rows), None)
+    year = None
+    if published:
+        match = _YEAR.search(published)
+        year = int(match.group()) if match else None
+
+    keywords = [
+        link.get_text(strip=True).strip(";；,，、")
+        for link in soup.select("p.keywords a")
+        if link.get_text(strip=True)
+    ]
 
     return Record(
         channel="cnki",
         title=title,
-        authors=_all_text(soup, DETAIL["authors"]),
-        institution=_first_text(soup, DETAIL["institution"]),
-        source=journal_match.group(1) if journal_match else None,
-        year=int(issue_match.group(1)) if issue_match else None,
-        issue=issue_match.group(2) if issue_match else None,
-        volume=volume_match.group(1) if volume_match else None,
-        pages=pages_match.group(1).replace(" ", "") if pages_match else None,
-        doi=doi_match.group(0) if doi_match else None,
-        abstract=abstract,
-        keywords=_all_text(soup, DETAIL["keywords"]),
+        authors=authors,
+        institution=institution,
+        source=_source(soup),
+        year=year,
+        volume=_pick(rows, "卷"),
+        issue=_pick(rows, "期"),
+        pages=_pick(rows, "页"),
+        doi=doi,
+        abstract=_text(soup.select_one(DETAIL["abstract"])),
+        keywords=keywords,
         url=url,
     )
