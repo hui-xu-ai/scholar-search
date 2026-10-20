@@ -1,7 +1,8 @@
 """TCP client for the native host.
 
-The host listens on loopback only and requires a per-run token. This adapter is
-the kernel's view of the browser: one action in, one outcome out.
+The host listens on loopback only and requires a per-run token. Several hosts
+may exist at once (one per browser reconnect), so the adapter pings the
+registry and talks to whichever host answers.
 """
 
 from __future__ import annotations
@@ -15,6 +16,8 @@ from typing import Any
 from ...core.config import host_runtime_dir
 from ...core.contracts import Action, ActionOutcome
 
+PING_TIMEOUT_S = 0.6
+
 
 class BridgeAdapter:
     name = "bridge"
@@ -25,48 +28,97 @@ class BridgeAdapter:
         *,
         timeout_s: float = 15.0,
     ) -> None:
-        self._endpoint = endpoint or (host_runtime_dir() / "bridge.json")
+        self._endpoint = endpoint
         self._timeout = timeout_s
         self._socket: socket.socket | None = None
         self._reader: Any = None
         self._token: str | None = None
         self._port: int | None = None
 
+    # -- discovery -----------------------------------------------------
+
+    def _candidates(self) -> list[Path]:
+        if self._endpoint is not None:
+            return [self._endpoint]
+
+        root = host_runtime_dir()
+        files = sorted(
+            (root / "hosts").glob("*.json"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        legacy = root / "bridge.json"
+        return [*files, *([legacy] if legacy.exists() else [])]
+
+    @staticmethod
+    def _ping(path: Path) -> tuple[int, str] | None:
+        try:
+            info = json.loads(path.read_text(encoding="utf-8"))
+            port = int(info["port"])
+            token = str(info["token"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=PING_TIMEOUT_S) as sock:
+                sock.settimeout(PING_TIMEOUT_S)
+                payload = json.dumps({"cmd": "ping", "token": token}) + "\n"
+                sock.sendall(payload.encode("utf-8"))
+                line = sock.makefile("r", encoding="utf-8", newline="\n").readline()
+                if line and json.loads(line).get("ok"):
+                    return port, token
+        except (OSError, ValueError):
+            return None
+        return None
+
     def _connect(self) -> None:
         if self._socket is not None:
             return
-        raw = json.loads(self._endpoint.read_text(encoding="utf-8"))
-        self._port = int(raw["port"])
-        self._token = str(raw["token"])
-        self._socket = socket.create_connection(("127.0.0.1", self._port), timeout=self._timeout)
-        self._reader = self._socket.makefile("r", encoding="utf-8", newline="\n")
+        for path in self._candidates():
+            found = self._ping(path)
+            if found is None:
+                continue
+            self._port, self._token = found
+            sock = socket.create_connection(("127.0.0.1", self._port), timeout=self._timeout)
+            self._socket = sock
+            self._reader = sock.makefile("r", encoding="utf-8", newline="\n")
+            return
+        raise ConnectionError("no live native host found")
+
+    # -- actions -------------------------------------------------------
+
+    def _send(self, action: Action, timeout_ms: int) -> ActionOutcome:
+        assert self._socket is not None and self._reader is not None
+        request = {
+            "id": uuid.uuid4().hex,
+            "token": self._token,
+            "action": action.verb,
+            "params": dict(action.params),
+            "timeout_ms": timeout_ms,
+        }
+        self._socket.sendall((json.dumps(request, ensure_ascii=False) + "\n").encode("utf-8"))
+        line = self._reader.readline()
+        if not line:
+            raise ConnectionError("bridge closed the connection")
+        reply = json.loads(line)
+        return ActionOutcome(
+            action=action,
+            ok=bool(reply.get("ok")),
+            data=dict(reply.get("data") or {}),
+            error=reply.get("error"),
+            duration_ms=int(reply.get("duration_ms") or 0),
+            url=reply.get("url"),
+        )
 
     def execute(self, action: Action, *, timeout_ms: int) -> ActionOutcome:
-        try:
-            self._connect()
-            assert self._socket is not None and self._reader is not None
-            request = {
-                "id": uuid.uuid4().hex,
-                "token": self._token,
-                "action": action.verb,
-                "params": dict(action.params),
-                "timeout_ms": timeout_ms,
-            }
-            self._socket.sendall((json.dumps(request, ensure_ascii=False) + "\n").encode("utf-8"))
-            line = self._reader.readline()
-            if not line:
-                raise ConnectionError("bridge closed the connection")
-            reply = json.loads(line)
-            return ActionOutcome(
-                action=action,
-                ok=bool(reply.get("ok")),
-                data=dict(reply.get("data") or {}),
-                error=reply.get("error"),
-                duration_ms=int(reply.get("duration_ms") or 0),
-                url=reply.get("url"),
-            )
-        except (OSError, ValueError, KeyError) as exc:
-            return ActionOutcome(action=action, ok=False, error=f"bridge.error: {exc}")
+        for attempt in range(2):
+            try:
+                self._connect()
+                return self._send(action, timeout_ms)
+            except (OSError, ValueError, KeyError) as exc:
+                self.close()
+                if attempt == 1:
+                    return ActionOutcome(action=action, ok=False, error=f"bridge.error: {exc}")
+        return ActionOutcome(action=action, ok=False, error="bridge.error: unreachable")
 
     def close(self) -> None:
         for closable in (self._reader, self._socket):

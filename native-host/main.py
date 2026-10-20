@@ -28,15 +28,27 @@ ENDPOINT_NAME = "bridge.json"
 
 
 def write_endpoint(port: int, token: str) -> Path:
-    path = host_runtime_dir() / ENDPOINT_NAME
+    root = host_runtime_dir()
     payload = {"port": port, "token": token, "pid": os.getpid(), "started": time.time()}
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    encoded = json.dumps(payload)
+
+    path = root / ENDPOINT_NAME
+    path.write_text(encoded, encoding="utf-8")
+
+    registry = root / "hosts"
+    registry.mkdir(parents=True, exist_ok=True)
+    (registry / f"bridge-{os.getpid()}.json").write_text(encoded, encoding="utf-8")
     return path
 
 
 def clear_endpoint(path: Path) -> None:
+    registry = host_runtime_dir() / "hosts" / f"bridge-{os.getpid()}.json"
     with contextlib.suppress(OSError):
-        path.unlink()
+        registry.unlink()
+    with contextlib.suppress(OSError):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if int(payload.get("pid", -1)) == os.getpid():
+            path.unlink()
 
 
 def serve_client(
@@ -56,6 +68,15 @@ def serve_client(
             if not secrets.compare_digest(str(request.get("token", "")), token):
                 connection.sendall(b'{"ok":false,"error":"policy.token"}\n')
                 continue
+
+            if request.get("cmd") == "ping":
+                connection.sendall(b'{"ok":true}\n')
+                continue
+
+            if request.get("cmd") == "shutdown":
+                connection.sendall(b'{"ok":true}\n')
+                connection.close()
+                os._exit(0)
 
             action = request.get("action")
             params = request.get("params") or {}
@@ -119,20 +140,58 @@ def _log(message: str) -> None:
         pass
 
 
+def read_endpoint() -> tuple[int, str] | None:
+    path = host_runtime_dir() / ENDPOINT_NAME
+    try:
+        info = json.loads(path.read_text(encoding="utf-8"))
+        return int(info["port"]), str(info["token"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def retire_endpoint(endpoint: tuple[int, str] | None) -> None:
+    """Ask the previous host to exit, so only the newest one survives."""
+
+    if endpoint is None:
+        return
+    port, token = endpoint
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1.0) as sock:
+            payload = json.dumps({"cmd": "shutdown", "token": token}) + "\n"
+            sock.sendall(payload.encode("utf-8"))
+    except OSError:
+        pass
+
+
+def prune_registry() -> None:
+    """Drop registry files whose host no longer listens."""
+
+    registry = host_runtime_dir() / "hosts"
+    for path in registry.glob("*.json"):
+        try:
+            info = json.loads(path.read_text(encoding="utf-8"))
+            with socket.create_connection(("127.0.0.1", int(info["port"])), timeout=0.3):
+                continue
+        except (OSError, ValueError, KeyError, TypeError):
+            with contextlib.suppress(OSError):
+                path.unlink()
+
+
 def main() -> int:
     try:
         ensure_host_runtime()
-        # Every native connection needs its own host: the extension reconnects
-        # on worker restarts, and refusing the new instance leaves the browser
-        # with a dead port while the old process still holds the endpoint.
+        prune_registry()
         _log(f"start pid={os.getpid()} cwd={os.getcwd()}")
         host = BridgeHost()
         token = secrets.token_urlsafe(24)
         domains = tuple(os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",")) or DEFAULT_DOMAINS
         domains = tuple(domain for domain in domains if domain)
 
+        previous = read_endpoint()
         server, port = start_tcp_server(host, token, domains)
         endpoint = write_endpoint(port, token)
+        _ = previous  # kept for diagnostics; hosts no longer retire each other
+
         _log(f"ready port={port} endpoint={endpoint}")
         print(
             f"scholar-search host ready: 127.0.0.1:{port} ({endpoint})",

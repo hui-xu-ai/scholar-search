@@ -52,8 +52,13 @@ async function run(action, params) {
       // The captcha SDK preloads hidden DOM; only an on-screen widget counts.
       const widget = document.querySelector("#tcaptcha_transform_dy");
       const visible = Boolean(widget && widget.getBoundingClientRect().top >= 0);
-      const bodyText = document.body ? document.body.innerText : "";
-      const authGate = /手机号认证|获取短信验证码|请尽快完成认证/.test(bodyText);
+      // CNKI keeps a login panel in every page; only a shown modal is a gate.
+      const modal = document.querySelector("#Ecp_top_login_realName, #Ecp_top_login_oversea");
+      const authGate = Boolean(
+        modal &&
+          getComputedStyle(modal).display !== "none" &&
+          modal.getBoundingClientRect().height > 0
+      );
       return {
         ok: true,
         data: {

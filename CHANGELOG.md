@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.2.3] - 2026-10-21
+
+### Fixed
+
+- Account-gate detection now requires a **visible** login modal; the previous body-text match
+  flagged CNKI's always-present login panel and produced a false cooldown.
+- Native hosts register themselves under `hosts/` and answer a ping; the adapter picks a live
+  host instead of trusting a single stale `bridge.json`.
+- Removed host “retirement”: it caused reconnect churn where each new host killed the previous one.
+- Verified after the fix: one read-only search returned 595 hits, no cooldown.
+
 ## [0.2.2] - 2026-10-21
 
 ### Changed

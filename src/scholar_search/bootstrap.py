@@ -23,7 +23,9 @@ def build_service() -> ScholarService:
     endpoint = host_runtime_dir() / "bridge.json"
 
     def adapter_factory() -> BridgeAdapter:
-        return BridgeAdapter(endpoint=endpoint)
+        # Let the adapter discover a live host; the legacy file can be stale
+        # while several browser reconnects are in flight.
+        return BridgeAdapter()
 
     def planner_factory(adapter: BrowserAdapter) -> Planner:
         return Planner(adapter=adapter, policy=policy, risk=risk, audit=audit)

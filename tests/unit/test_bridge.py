@@ -55,17 +55,21 @@ def test_adapter_roundtrip(tmp_path: Path) -> None:
     token = "test-token"
 
     def serve() -> None:
-        connection, _ = server.accept()
-        with connection, connection.makefile("r", encoding="utf-8") as reader:
-            request = json.loads(reader.readline())
-            assert request["token"] == token
-            reply = {
-                "ok": True,
-                "data": {"html": "<html/>"},
-                "url": "https://kns.cnki.net/x",
-                "duration_ms": 5,
-            }
-            connection.sendall((json.dumps(reply) + "\n").encode("utf-8"))
+        for _ in range(2):
+            connection, _ = server.accept()
+            with connection, connection.makefile("r", encoding="utf-8") as reader:
+                request = json.loads(reader.readline())
+                assert request["token"] == token
+                if request.get("cmd") == "ping":
+                    connection.sendall(b'{"ok":true}\n')
+                    continue
+                reply = {
+                    "ok": True,
+                    "data": {"html": "<html/>"},
+                    "url": "https://kns.cnki.net/x",
+                    "duration_ms": 5,
+                }
+                connection.sendall((json.dumps(reply) + "\n").encode("utf-8"))
         server.close()
 
     threading.Thread(target=serve, daemon=True).start()
