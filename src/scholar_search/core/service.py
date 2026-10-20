@@ -21,7 +21,7 @@ from .contracts import (
     SearchPage,
     SearchQuery,
 )
-from .errors import ParseError, PolicyError
+from .errors import ChannelError, ParseError, PolicyError
 from .export import to_endnote, to_ris
 from .planner import Planner
 from .policy import PolicyEngine
@@ -79,6 +79,8 @@ class ScholarService:
         self, *, issn: str, year: int, issue: str, channel: str
     ) -> SearchPage:
         spec, impl = self._resolve(channel)
+        if "journal" not in spec.manifest.capabilities:
+            raise ChannelError(f"channel {channel!r} does not support journal listings")
         key = _key("journal", spec, {"issn": issn, "year": year, "issue": issue})
 
         cached = self._cache.get(key)

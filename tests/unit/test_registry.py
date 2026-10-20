@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from scholar_search.core.errors import ChannelError
 from scholar_search.core.registry import ChannelRegistry
 
 
@@ -26,11 +25,7 @@ def test_select_missing_channel_raises() -> None:
         raise AssertionError("expected ChannelNotFound")
 
 
-def test_load_without_get_channel_raises() -> None:
-    # P3 adds get_channel(); until then loading must fail loudly, not silently.
-    try:
-        ChannelRegistry().load("cnki")
-    except ChannelError as exc:
-        assert "get_channel" in str(exc)
-    else:  # pragma: no cover
-        raise AssertionError("expected ChannelError")
+def test_load_returns_channel_with_manifest() -> None:
+    channel = ChannelRegistry().load("cnki")
+    assert channel.manifest.channel == "cnki"
+    assert channel.manifest.site_version == "2026.10"
