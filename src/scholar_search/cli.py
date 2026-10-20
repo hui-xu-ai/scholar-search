@@ -6,6 +6,7 @@ P0 only wires the command surface. Implementations land in later phases.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 
@@ -41,9 +42,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         build_parser().print_help()
         return 0
 
-    home = config.ensure_home()
-    print(f"runtime home: {home}", file=sys.stderr)
-    print(f"command '{args.command}' is not implemented in P0", file=sys.stderr)
+    if args.command == "reset":
+        if not args.confirm:
+            print("refusing to clear the cooldown without --confirm", file=sys.stderr)
+            return 2
+        from .core.risk import RiskGuard
+
+        RiskGuard().clear()
+        print("risk cooldown cleared", file=sys.stderr)
+        return 0
+
+    config.ensure_home()
+
+    if args.command == "status":
+        from .bootstrap import build_service
+
+        service = build_service()
+        print(json.dumps(service.status(), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "serve":
+        from .bootstrap import build_service
+        from .transports import http as http_transport
+        from .transports import stdio as stdio_transport
+
+        service = build_service()
+        if args.transport == "http":
+            http_transport.serve(service, host=args.host, port=args.port)
+        else:
+            stdio_transport.serve(service)
+        return 0
+
     return 2
 
 

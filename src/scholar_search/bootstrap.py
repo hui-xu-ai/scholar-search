@@ -1,0 +1,48 @@
+"""Compose the service graph for a running server."""
+
+from __future__ import annotations
+
+from .adapters.bridge import BridgeAdapter
+from .core.audit import AuditLog
+from .core.cache import Cache
+from .core.config import app_home
+from .core.contracts import BrowserAdapter
+from .core.planner import Planner
+from .core.policy import PolicyEngine
+from .core.registry import ChannelRegistry
+from .core.risk import RiskGuard
+from .core.service import ScholarService
+
+
+def build_service() -> ScholarService:
+    registry = ChannelRegistry()
+    policy = PolicyEngine()
+    risk = RiskGuard()
+    audit = AuditLog()
+    cache = Cache()
+    endpoint = app_home() / "bridge.json"
+
+    def adapter_factory() -> BridgeAdapter:
+        return BridgeAdapter(endpoint=endpoint)
+
+    def planner_factory(adapter: BrowserAdapter) -> Planner:
+        return Planner(adapter=adapter, policy=policy, risk=risk, audit=audit)
+
+    def status() -> dict[str, object]:
+        until = risk.cooldown_until()
+        return {
+            "channels": [spec.name for spec in registry.discover()],
+            "cooldown_until": until.isoformat() if until else None,
+            "quota_remaining": policy.remaining_today,
+            "bridge_endpoint": str(endpoint),
+            "bridge_ready": endpoint.exists(),
+        }
+
+    return ScholarService(
+        registry=registry,
+        adapter_factory=adapter_factory,
+        planner_factory=planner_factory,
+        policy=policy,
+        cache=cache,
+        status_provider=status,
+    )

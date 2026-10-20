@@ -23,6 +23,11 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - MV3 extension skeleton (background relay + nine generic DOM verbs).
 - `native-host/install.ps1` registers the host for Edge and Chrome under HKCU.
 - 47 tests including bridge framing, policy and TCP round-trip.
+- CNKI channel v2026.10: search plan, result-table parser, detail plan and parser.
+- MCP server with four tools: search, detail, export, status.
+- stdio transport and loopback HTTP transport with bearer token and Host check.
+- `scholar-search status` reports channels, cooldown, quota and bridge readiness.
+- 51 tests; ruff and mypy --strict clean.
 
 
 
