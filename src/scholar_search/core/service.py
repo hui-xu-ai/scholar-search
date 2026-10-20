@@ -59,6 +59,13 @@ class ScholarService:
 
         plan = channel.plan_search(query)
         page = channel.parse_search(_html(self._run(plan, spec)), query=query)
+        if len(page.records) > query.limit:
+            page = SearchPage(
+                records=page.records[: query.limit],
+                total=page.total,
+                page=page.page,
+                page_count=page.page_count,
+            )
         self._cache.set(key, _page_to(page))
         return page
 
