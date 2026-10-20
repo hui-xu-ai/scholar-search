@@ -7,6 +7,12 @@ dist/
 .venv/
 venv/
 
+# Native host build outputs and per-user registration
+native-host/scholar-host.exe
+native-host/python-path.txt
+native-host/com.scholar.search.json
+native-host/run-host.cmd
+
 # Tooling caches
 .pytest_cache/
 .mypy_cache/
