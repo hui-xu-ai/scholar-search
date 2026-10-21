@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.10] - 2026-10-21
+
+### Fixed
+
+- **Date sort direction** The CNKI grid already opens on publication-time DESC;
+  the product clicked the tab once, which toggled it to ASC. `sort=date` now sends no
+  sort clicks. Citation sort clicks twice (first activation ASC, second DESC).
+- **Pagination settle** A first page turn now waits 800 ms after the grid renders; the
+  turn was previously clicked while the grid was still binding and was ignored.
+- **Content-script readiness** The background retries `sendMessage` for up to ~1.8 s
+  when a navigation outruns `document_idle` injection, instead of failing with
+  "Receiving end does not exist".
+- Read timeout trimmed to 7 s so every query/page/sort/page-size combination stays
+  within the 120 s plan budget.
+
 ## [0.3.9] - 2026-10-21
 
 ### Fixed
@@ -301,6 +316,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 

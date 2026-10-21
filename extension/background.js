@@ -134,6 +134,22 @@ async function onHostMessage(message, channel) {
     }
 
     const message = { type: "dom_action", action, params };
+
+    // document_idle injection can lag behind a navigation; retry a missing
+    // receiver before giving up.
+    const sendToTab = async () => {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        try {
+          return await chrome.tabs.sendMessage(tabId, message);
+        } catch (error) {
+          const text = String((error && error.message) || error);
+          if (!/Receiving end|Could not establish/i.test(text)) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+      throw new Error("content_not_ready");
+    };
+
     let result;
     if (action === "click") {
       // A navigational click can destroy the content-script context before it
@@ -141,8 +157,8 @@ async function onHostMessage(message, channel) {
       // following wait_for verifies the page.
       try {
         result = await Promise.race([
-          chrome.tabs.sendMessage(tabId, message),
-          new Promise((resolve) => setTimeout(() => resolve(undefined), 800)),
+          sendToTab(),
+          new Promise((resolve) => setTimeout(() => resolve(undefined), 2000)),
         ]);
       } catch (error) {
         result = undefined;
@@ -151,7 +167,7 @@ async function onHostMessage(message, channel) {
         return reply({ ok: true, data: { navigation_expected: true } });
       }
     } else {
-      result = await chrome.tabs.sendMessage(tabId, message);
+      result = await sendToTab();
     }
     if (!result) throw new Error("dom_failed");
     return reply({ ok: Boolean(result.ok), error: result.error, data: result.data || {} });
@@ -163,5 +179,6 @@ async function onHostMessage(message, channel) {
 chrome.runtime.onInstalled.addListener(connect);
 chrome.runtime.onStartup.addListener(connect);
 connect();
+
 
 

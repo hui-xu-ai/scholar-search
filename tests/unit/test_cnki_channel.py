@@ -143,9 +143,10 @@ def test_year_filters_do_not_touch_the_site_control() -> None:
 
 
 def test_sort_uses_result_grid_tabs() -> None:
+    # The grid already opens on publication-time DESC; clicking would toggle it.
     plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", sort="date"))
     selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
-    assert "#orderList li[data-sort='PT']" in selectors
+    assert "#orderList li[data-sort='PT']" not in selectors
 
     plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", sort="citation"))
     selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
