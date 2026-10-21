@@ -1,0 +1,158 @@
+# 运维手册：安装、升级、回滚与排障
+
+面向自己部署和维护的人。只想知道怎么调工具，看 [README](../README.md)。
+
+## 1. 三种安装形态
+
+| 形态 | 适用 | 浏览器资源在哪 |
+|---|---|---|
+| `pip install scholar_search-<版本>-py3-none-any.whl` | 一般用户 | 用 `scholar-search assets --target <目录>` 导出 |
+| `pip install -e ".[dev]"` | 改代码 | 仓库里的 `native-host/`、`extension/`、`schemas/` |
+| 部署树 `installations/<版本>/` | 多版本并存、给 MCP 客户端固定路径 | `installations/<版本>/browser/` |
+
+部署树长这样：
+
+```
+installations/<版本>/
+  venv/                    独立虚拟环境（解释器 + 依赖）
+  browser/
+    native-host/           main.py launcher.cs install.ps1 + 生成的 scholar-host.exe / manifest
+    extension/             background.js content/actions.js manifest.json
+    schemas/               record.json tools.json
+```
+
+MCP 客户端指向 `installations/<版本>/venv/Scripts/python.exe`，好处是升级时可以并行装新版本、
+回滚只改一行路径。
+
+## 2. 状态目录
+
+默认 `%LOCALAPPDATA%\scholar-search`，可用 `SCHOLAR_SEARCH_HOME` 覆盖。
+**同一个 HOME 只能有一个活跃部署**，否则配额与冷却会分叉。
+
+| 路径 | 说明 | 可以删吗 |
+|---|---|---|
+| `state/quota.json` | 当日网络动作计数 | 删了等于当天配额清零，不建议 |
+| `state/cooldown.json` | 风控冷却 | 只在人工完成验证后用 `reset --confirm` |
+| `state/plan.lock` | 计划锁 | 有进程卡死时可删 |
+| `audit/audit.jsonl` | 动作审计 | 可归档 |
+| `cache/cache.sqlite3` | 响应缓存（7 天） | 可删，删了下次重新抓 |
+| `host/bridge.json` | 宿主端点与令牌 | 由宿主自动重建 |
+| `host/logs/host.log` | 宿主日志 | 可轮转 |
+| `installations/<版本>/` | 部署树 | 旧版本可删 |
+
+## 3. 从零安装（部署树方式）
+
+```powershell
+# 1) 解包/安装到新版本目录
+$ver = '0.3.17'
+$root = "$env:LOCALAPPDATA\scholar-search\installations\$ver"
+python -m venv "$root\venv"          # 或复制现有 venv 再替换 site-packages
+& "$root\venv\Scripts\python.exe" -m pip install .\dist\scholar_search-$ver-py3-none-any.whl
+& "$root\venv\Scripts\python.exe" -m scholar_search.cli assets --target "$root\browser"
+
+# 2) 注册原生宿主（写清单 + HKCU 注册 + 低完整性标签）
+pwsh "$root\browser\native-host\install.ps1" -Python "$root\venv\Scripts\python.exe"
+
+# 3) 装扩展：edge://extensions → 开发者模式 → 加载解压缩 → $root\browser\extension
+# 4) 验证
+$env:SCHOLAR_SEARCH_HOME = "$env:LOCALAPPDATA\scholar-search"
+& "$root\venv\Scripts\python.exe" -m scholar_search.cli status
+```
+
+不想用 `pip`，也可以直接用 wheel 解压覆盖 `site-packages`：
+
+```powershell
+Expand-Archive .\dist\scholar_search-0.3.17-py3-none-any.whl -DestinationPath .\wheel
+Copy-Item .\wheel\scholar_search "$root\venv\Lib\site-packages\" -Recurse -Force
+Copy-Item .\wheel\scholar_search-0.3.17.dist-info "$root\venv\Lib\site-packages\" -Recurse -Force
+```
+
+## 4. 升级
+
+```powershell
+# 1) 用当前版本目录复制出新目录（现在只保留一个安装目录，没有"上一版"可复制）
+Copy-Item "$env:LOCALAPPDATA\scholar-search\installations\0.3.17" `
+          "$env:LOCALAPPDATA\scholar-search\installations\0.3.18" -Recurse
+
+# 2) 在新目录里换包
+$new = "$env:LOCALAPPDATA\scholar-search\installations\0.3.18"
+Expand-Archive .\dist\scholar_search-0.3.18-py3-none-any.whl -DestinationPath .\wheel318
+Remove-Item "$new\venv\Lib\site-packages\scholar_search*" -Recurse -Force
+Copy-Item .\wheel318\scholar_search* "$new\venv\Lib\site-packages\" -Recurse -Force
+
+# 3) 刷新浏览器资源并重注册宿主
+Copy-Item .\native-host\* "$new\browser\native-host\" -Force
+Copy-Item .\extension\* "$new\browser\extension\" -Recurse -Force
+Copy-Item .\schemas\* "$new\browser\schemas\" -Recurse -Force
+pwsh "$new\browser\native-host\install.ps1" -Python "$new\venv\Scripts\python.exe"
+
+# 4) 更新 MCP 客户端里的解释器路径（Codex / DSH bundle / Claude Desktop …）
+#    扩展一般不用重装：只有 extension/ 的 JS 或 manifest.json 变了才重载
+
+# 5) 重启客户端（stdio server 是子进程，导过的模块不会热更新）
+```
+
+升级后确认三件事：
+
+1. `status` 里 `bridge_ready: true`；
+2. 版本号正确：`python -m scholar_search.cli --version`；
+3. 跑一次真实检索（会花 3 个配额）。
+
+## 5. 回滚
+
+部署树模式最简单：
+
+1. 把 MCP 客户端的解释器路径改回旧版本目录；
+2. 重跑旧目录的 `install.ps1`（让宿主的 `python-path.txt` 与注册表回到旧版）；
+3. 重启客户端；
+4. 扩展不用动。
+
+注意：**不要**让两个版本同时对着同一个 `SCHOLAR_SEARCH_HOME` 长期跑，配额会打架。
+
+## 6. 常用命令
+
+```powershell
+scholar-search status                 # 渠道、剩余配额、冷却、桥接是否就绪
+scholar-search assets --target .\b --force
+scholar-search reset --confirm        # 人工完成验证后清除冷却（显式、不可撤销）
+scholar-search serve --transport stdio
+scholar-search serve --transport http --host 127.0.0.1 --port 8765
+scholar-search --version
+```
+
+## 7. 排障
+
+按现象查，先看 `audit/audit.jsonl` 最后几条，再看浏览器状态。
+
+| 现象 | 先查 | 处理 |
+|---|---|---|
+| `bridge_ready: false` | 宿主进程是否在跑（`Get-Process scholar-host`）、`host/bridge.json` 是否新鲜 | 重启浏览器；仍不行重跑 `install.ps1` |
+| 动作报 `content_not_ready` | **浏览器窗口标题是不是"隐私错误"** | 多半是代理换证，见下节 |
+| `sleep` / `type` 报 `bridge.timeout`，`duration_ms` 贴着超时值 | 窗口是否在前台、是否只有一个可见窗口 | 把 CNKI 窗口切前台；0.3.15 起暂停已带 2s 余量，仍超时说明节流更狠 |
+| `goto` 15s 超时 | 是否长期复用同一个 CNKI 标签页 | 关掉所有 CNKI 标签页或重启浏览器 |
+| `blocked` + `cooldown_until` | `audit.jsonl` 里的 `signal` | 人工在浏览器完成验证，再 `reset --confirm`；**不要**重试 |
+| `policy.params` | 参数是否越界（page>3、limit>50、未知动词） | 按提示改参数 |
+| `ParseError` | 页面结构是否变了 | 见 [知网改版应对](cnki-maintenance.md) |
+| 配额用尽 | `quota.json` 的 `day` 字段 | 等次日自动重置；不要改计数绕过 |
+
+### 代理导致证书错误（很常见）
+
+现象：`goto` 成功但页面是"隐私错误"，后续动作全部 `content_not_ready`；
+报错是 `NET::ERR_CERT_COMMON_NAME_INVALID`。
+
+原因：系统代理（Clash、v2ray 等）对 `kns.cnki.net` 做了 TLS 中间人，证书名对不上。
+
+处理，二选一：
+
+- 在代理软件里加规则 `DOMAIN-SUFFIX,cnki.net → DIRECT`（推荐，持久）；
+- 或者把 `*.cnki.net;cnki.net` 加进
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings` 的 `ProxyOverride`
+  （改完用 `InternetSetOption(NULL, 39/37, ...)` 广播，或重启浏览器）。
+
+判断技巧：PowerShell 的 `Invoke-WebRequest` 不走 WinINET 注册表代理，它能通不代表浏览器能通。
+
+### 浏览器定时器节流
+
+窗口不在前台时浏览器把定时器按整秒分桶，暂停最多晚到近 1 秒；隐藏超过 5 分钟还有更狠的
+节流。所以：**跑检索时把 CNKI 窗口切到前台，只留一个可见窗口、一个 CNKI 标签页**。
+`settle()` 的 2s 余量只覆盖前一种情况。

@@ -37,3 +37,6 @@ fixtures/local/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local handoff notes (machine-specific paths; not for public history)
+HANDOFF.md
