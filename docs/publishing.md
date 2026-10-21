@@ -63,6 +63,21 @@ sys.exit(0 if tag == version else 1)
 
 所以发布顺序必须是：改版本号 → 提交 → 打 tag → 推送 tag。
 
+### tag 与 main 一起推时的时序坑
+
+首次建库时实测：先 `git push -u origin main`、紧接着 `git push origin --tags`，
+25 个 tag 全部推上去了，但**一个 release 工作流都没触发**。原因是 GitHub 处理 tag 事件时，
+`release.yml` 在默认分支上还没生效（工作流文件刚随 main 推上去几秒）。
+
+处理：单独重推需要发版的那个 tag 即可——
+
+```powershell
+git push origin :refs/tags/v0.3.18    # 删远端 tag
+git push origin v0.3.18               # 重新推，触发 release
+```
+
+不需要（也不建议）把历史 tag 挨个重推，那会一次生成几十个 release。
+
 ## 4. 发布一个新版本（标准动作）
 
 ```powershell
