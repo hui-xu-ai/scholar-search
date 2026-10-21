@@ -12,24 +12,25 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | `D:\Python\DeepSeek\DateWork\scholar-search` |
-| 分支 / HEAD | `main` / `f94b417` |
-| 最新 tag | `v0.3.13` |
+| 分支 / HEAD | `main` / `7079948` |
+| 最新 tag | `v0.3.14` |
 | 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13` |
 | Codex 配置 | `C:\Users\xuhui\.codex\config.toml` → 0.3.13 venv |
-| 扩展 | 0.3.11 加载的 JS；0.3.12/0.3.13 只有 Python 改动，**无需重载** |
+| 扩展 | 0.3.11 加载的 JS；0.3.12–0.3.14 只有 Python 改动，**无需重载** |
 
-### 未提交的改动（重要）
+### 0.3.14 已提交（本轮完成）
 
-`git status` 显示两个文件未提交：
+- `src/scholar_search/channels/cnki/v2026_10/plan_search.py` —— `goto` 后加 `sleep 2500`
+  （等 CNKI 首屏后的二次跳转完成，避免内容脚本被替换导致 `type` 超时）。
+- `tests/unit/test_cnki_channel.py` —— 计划动作序列断言加入 `sleep`，索引后移。
+- 版本号、`CHANGELOG.md`、`NOTICE` 同步到 0.3.14；`dist/` 有
+  `scholar_search-0.3.14-py3-none-any.whl` 与 `.tar.gz`（已核对 wheel 内含新的
+  `sleep` 动作）。
+- 仓库**没有配置 remote**，tag 只在本地，release workflow 不会触发。
 
-- `src/scholar_search/channels/cnki/v2026_10/plan_search.py`
-  - `goto` 后新增 `sleep 2500`（等 CNKI 首屏后的二次跳转完成，避免内容脚本被替换导致 `type` 超时）
-- `tests/unit/test_cnki_channel.py`
-  - 计划动作序列断言加入 `sleep`，索引相应后移
+同一份代码此前已热更新到 0.3.13 安装目录，所以线上行为已含该修复；0.3.14 只是把它
+落进版本库与产物。**是否把安装目录、Codex 配置、DSH bundle 升到 0.3.14 仍待决定。**
 
-这份工作区代码已经**热更新**到 0.3.13 安装目录，所以线上行为包含该修复，但 tag 里没有。
-
-**接手后第一件事**：把这两个文件提交，发 `0.3.14`（版本号、CHANGELOG、NOTICE 同步），再决定是否部署。
 
 ## 3. 已真机验证（2026-10-21）
 
@@ -138,9 +139,34 @@ $env:PYTHONPATH='D:\Python\DeepSeek\DateWork\scholar-search\src'
 - `...\audits\independent-20261021-02-risk-followup\extension-followup.cjs`
 - `...\audits\independent-20261021-03-v031-verification\extension-edges.cjs`
 
+### 本机 DSH 沙箱下跑 python 的坑（2026-10-21 实测）
+
+pwsh 里直接起的 python / ruff / uv / mypy 子进程是**低完整性 AppContainer 令牌**，只能写带
+Low 完整性标签的路径。工作区根 `D:\Python\DeepSeek\DateWork` 有该标签，`scholar-search`
+子目录、`%TEMP%`、`D:\uv-cache` 都没有，于是出现 `PermissionError`、`.ruff_cache 拒绝访问`、
+`tempfile: No usable temporary directory` 这类假故障（代码本身没问题）。
+
+绕过办法：新建一个目录（自动继承 Low 标签）当临时区，并把各种缓存指过去：
+
+```powershell
+$low='D:\Python\DeepSeek\DateWork\.tmp-low'
+$env:TMP=$low; $env:TEMP=$low; $env:TMPDIR=$low; $env:UV_CACHE_DIR="$low\uv-cache"
+$env:PYTHONDONTWRITEBYTECODE='1'; $env:PYTHONPYCACHEPREFIX="$low\pycache"
+.\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp "$low\pytest"
+.\.venv\Scripts\ruff.exe check --no-cache src tests
+.\.venv\Scripts\mypy.exe --cache-dir "$low\mypy" src
+uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
+```
+
+`git` 子进程不受影响，提交、打 tag 正常。**不要**给仓库加 Low 完整性标签来图省事——那等于
+让任何低完整性进程都能改源码。
+
 ## 11. 待办
 
-- [ ] 提交 `plan_search.py` + 测试改动，发 `0.3.14`
-- [ ] 决定是否把 DSH bundle 的 command 路径升级到 0.3.14（会需要一次 DSH 重启/插件重装）
+- [x] 提交 `plan_search.py` + 测试改动，发 `0.3.14`（本轮已完成，HEAD `7079948`，tag `v0.3.14`）
+- [ ] 决定是否把安装目录 / Codex `config.toml` / DSH bundle 的 command 路径升级到 0.3.14
+      （会需要一次 DSH 重启或插件重装；仓库无 remote，tag 只在本地）
 - [ ] 观察 `type` 超时是否还会出现；若出现，优先查标签页是否被冻结/最小化
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
+- [ ] 若要在真实会话里复验 0.3.14，按第 8 节自测，注意当天配额（写本文件时为 191/300）
+
