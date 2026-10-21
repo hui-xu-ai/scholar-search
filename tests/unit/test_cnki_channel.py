@@ -230,8 +230,8 @@ def test_parse_detail_from_recorded_page() -> None:
 
     assert record.title.startswith("受马铃薯")
     assert not record.title.endswith("附视频")
-    assert record.authors == ["王红", "郭小溪", "杨亮"]
-    assert record.institution is not None and "延安大学" in record.institution
+    assert record.authors == ["张三", "李四", "王五"]
+    assert record.institution is not None and "示例大学" in record.institution
     assert record.source == "复合材料学报"
     assert record.doi == "10.13801/j.cnki.fhclxb.20261013.003"
     assert record.year == 2026

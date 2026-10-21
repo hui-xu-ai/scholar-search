@@ -8,15 +8,61 @@ Academic search: a read-only, microkernel-based scholarly metadata service.
 This project is an independent, non-official tool. It is not affiliated with,
 endorsed by, or sponsored by any academic database operator.
 
-Third-party references
-----------------------
 
-Channel selectors and interaction flows were informed by the public project
-cookjohn/cnki-skills (MIT License), which documents CNKI page structure and
-search flows. No source code from that project is copied; only factual
-selector knowledge and workflow order are referenced.
+Provenance and third-party notices
+----------------------------------
 
-  https://github.com/cookjohn/cnki-skills
+This codebase was written for this project. No source files, modules or functions
+were copied from another repository. What it does reuse is narrower than "code":
+
+  1. CSS selector strings that identify elements on CNKI pages. These are facts
+     about a public web page (class names, ids), not creative expression; they
+     were checked against live pages and are covered by fixture tests.
+  2. The order of the interaction steps (open search page, fill box, submit,
+     read grid), which is dictated by how the site works.
+  3. Knowledge of known pitfalls, such as the hidden captcha widget that stays in
+     the DOM, which would otherwise produce false positives.
+
+Those were informed by three public MIT-licensed projects:
+
+  cookjohn/cnki-skills        https://github.com/cookjohn/cnki-skills
+  SepineTam/cnki-mcp          https://github.com/SepineTam/cnki-mcp
+  wuruiqi/cnki-mcp            https://github.com/wuruiqi/cnki-mcp
+
+All three are MIT-licensed. This project is MIT-licensed as well, so the terms are
+compatible either way; the attribution above is given because it is the right
+thing to do, not because a licence compels it for the three items listed.
+
+What was NOT taken from them: the browser transport (they drive a debug port; this
+project uses a browser extension plus a native messaging host), the microkernel
+and channel layout, the policy/quota/risk engine, the parsers, the export layer,
+and every line of Python, JavaScript, C# and PowerShell in this repository.
+
+If you believe a fragment here is derived from your work in a way this notice does
+not describe, open an issue and it will be corrected or removed.
+
+See docs/reference-parity.md for a feature-by-feature comparison, including where
+this project deliberately diverges.
+
+
+Dependencies
+------------
+
+Runtime (installed by pip, not vendored into this repository):
+
+  mcp              MIT
+  beautifulsoup4   MIT
+  lxml             BSD-3-Clause
+  uvicorn          BSD-3-Clause
+  packaging        Apache-2.0 or BSD-2-Clause
+
+Development only:
+
+  pytest, pytest-cov, ruff, mypy, pre-commit    MIT
+
+Licence texts are distributed with each package; the statements above follow the
+metadata those packages publish.
+
 
 Trademarks
 ----------
@@ -24,22 +70,20 @@ Trademarks
 "CNKI", "知网", and other names are trademarks of their respective owners.
 They are used here only to describe interoperability targets, not as branding.
 
-Data
-----
 
-No bibliographic data, credentials, cookies, or session material is
-distributed with this project. Test fixtures are recorded page structure with
-personal and session data removed.
+Data and fixtures
+-----------------
 
+No bibliographic data, credentials, cookies, or session material is distributed
+with this project.
 
+The HTML files under tests/fixtures/ are page **structure** recorded from public
+pages, then desensitised:
 
+  - abstracts, author names, affiliations and keyword labels were replaced with
+    synthetic placeholders;
+  - mail addresses and any session-scoped parameters were removed;
+  - what remains is markup, class names, and public bibliographic facts (article
+    titles, journal names, volume/issue/page numbers, DOIs).
 
-
-
-
-
-
-
-
-
-
+They exist so the parsers can be tested offline without touching the site.

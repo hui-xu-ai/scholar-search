@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `NOTICE` now carries a full provenance statement: which public MIT projects informed this
+  one, exactly what was taken (selector strings, step order, known pitfalls) and what was
+  not (every file, module and function here is written for this project), plus the
+  licence of each runtime and development dependency.
+- `README` gained a 来源与致谢 section; `docs/reference-parity.md` no longer calls the
+  selectors "照搬" and points at the provenance statement.
+
+### Fixed
+
+- Test fixtures are now fully desensitised: recorded abstracts, author names,
+  affiliations and keyword labels are replaced with synthetic placeholders, and author
+  mail addresses are removed. Only markup, class names and public bibliographic facts
+  (title, journal, volume/issue/pages, DOI) remain.
+
 ## [0.3.18] - 2026-10-21
 
 ### Fixed

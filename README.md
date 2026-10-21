@@ -234,6 +234,24 @@ tests/                         单元 + 契约 + fixture 回放
 本项目仅用于个人学术研究中的题录检索。使用者应遵守目标站点的服务条款与所在机构的
 使用规定。项目本身不附带任何数据、凭证或会话材料，也不提供把数据灌入第三方系统的能力。
 
+## 来源与致谢
+
+本仓库的代码是为本项目独立编写的，**没有复制任何外部项目的源码文件、模块或函数**。
+沿用的只有三样：知网页面的 CSS 选择器字符串（属于 DOM 事实）、交互步骤的先后顺序
+（由站点决定）、以及已知坑的知识（例如常驻隐藏的验证码 DOM）。这些做法受到三个公开的
+MIT 项目启发：
+
+- [cookjohn/cnki-skills](https://github.com/cookjohn/cnki-skills)
+- [SepineTam/cnki-mcp](https://github.com/SepineTam/cnki-mcp)
+- [wuruiqi/cnki-mcp](https://github.com/wuruiqi/cnki-mcp)
+
+浏览器通道、微内核结构、策略/风控引擎、解析器与导出层都是本项目自己的设计，与它们不同
+（对照见 [借鉴对照表](docs/reference-parity.md)）。完整的来源声明、依赖许可与
+fixture 脱敏说明见 [NOTICE](NOTICE)。
+
+`tests/fixtures/` 下的页面快照已脱敏：摘要、作者、单位、关键词全部替换为合成占位文本，
+邮箱与会话参数已删除，只保留标记结构、类名和公开的题录事实（标题、刊名、卷期页、DOI）。
+
 ## License
 
-MIT，见 [LICENSE](LICENSE)；第三方参考与商标说明见 [NOTICE](NOTICE)。
+MIT，见 [LICENSE](LICENSE)。

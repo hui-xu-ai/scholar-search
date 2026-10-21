@@ -2,10 +2,14 @@
 
 本文件把三个公开项目里**已经过真机验证**的做法逐条对照到本项目，避免重复踩坑。新增行为前先过一遍这里。
 
+> **来源声明**：本仓库没有复制任何外部项目的源码文件、模块或函数。沿用的只有三样：
+> 知网页面的 CSS 选择器字符串（DOM 事实）、交互步骤的先后顺序（由站点决定）、
+> 以及已知坑的知识（例如常驻隐藏的验证码 DOM）。完整说明与依赖许可见 [NOTICE](../NOTICE)。
+
 参考项目：
 
 - `cookjohn/cnki-skills`（MIT）——知网检索、详情、引用的提示词技能，跑在 chrome-devtools-mcp 上。
-- `wuruiqi/...`（MIT，原 `cnki-mcp`）——Playwright 实现，带限速与验证码暂停。
+- `wuruiqi/cnki-mcp`（MIT）——Playwright 实现，带限速与验证码暂停。
 - `SepineTam/cnki-mcp`（MIT）——Playwright + 专业检索页 + 导出。
 
 ## 对照
@@ -15,14 +19,14 @@
 | 浏览器通道 | CDP（chrome-devtools-mcp） | Playwright（CDP） | Playwright（CDP） | 扩展 + 原生消息，**无 CDP** |
 | 输入方式 | JS 设值 + `dispatchEvent` | CDP `fill/click`（可信事件） | 同左 | DOM 事件，**不可信** |
 | 检索流程 | 打开 `/kns8s/search` → 输入 → 点击 | 同左 | 一框式 + 专业检索页 | 同左，按检索词自动选一框/专业页 |
-| 结果选择器 | `.result-table-list`、`td.name a.fz14` | 类似 | 类似 | **照搬**，已用真实页面验证 |
+| 结果选择器 | `.result-table-list`、`td.name a.fz14` | 类似 | 类似 | **相同字符串**（选择器即 DOM 事实），已用真实页面验证 |
 | 专业检索 | 高级检索技能 | 支持 | `AdvSearch?type=expert` + `textarea.majorSearch` | 同 SepineTam |
 | 翻页 | 页码点击 | 支持 | 支持 | `#PageNext`，最多 3 页 |
 | 验证码判定 | 检查 `#tcaptcha_transform_dy` 是否在屏幕内 | 检测到即暂停 | 检测到即暂停 | **同 cookjohn**，内容脚本回传 `captcha_visible` |
 | 验证页识别 | 提示词约定 | URL 匹配 | URL 匹配 | URL + `document.title`（“安全验证”） |
-| 限速 | 提示词约定 | 6–12 秒随机 | 有限速 | 内核强制：3 秒硬下限、并发 1、200/日、24h 冷却 |
+| 限速 | 提示词约定 | 6–12 秒随机 | 有限速 | 内核强制：3 秒硬下限、并发 1、300/日、24h 冷却 |
 | 下载 | 有 | 有 | 有（导出） | **无**，只有 RIS/EndNote 题录 |
-| 测试 | 无 | 有部分 | 有 | 58 个，含真机 fixture 回放 |
+| 测试 | 无 | 有部分 | 有 | 143 个，含真机 fixture 回放 |
 
 ## 有意偏离
 
@@ -46,5 +50,5 @@
 ## 教训
 
 1. 参考项目里写明的坑（验证码隐藏 DOM、检索流程）必须照做，不要自创。
-2. 选择器可以照搬，但**流程**必须验证；一框式 URL 在 2026 版页面上不触发检索。
+2. 选择器可以直接沿用（它们是 DOM 事实），但**流程**必须自己验证；一框式 URL 在 2026 版页面上不触发检索。
 3. 任何“看起来通了”的结论都要用 MCP 端到端复验，适配器层通过不代表服务层通过。
