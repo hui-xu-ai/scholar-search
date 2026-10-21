@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.8] - 2026-10-21
+
+### Fixed
+
+- **Click reply loss** A submit/search click can start a navigation that destroys the
+  content-script context before its reply is sent, producing `bridge.timeout` at the
+  kernel. The content script now replies first and activates the element on the next
+  task; the plan still verifies the result with its following `wait_for`.
+
 ## [0.3.7] - 2026-10-21
 
 ### Fixed
@@ -282,6 +291,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 
