@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from .audit import AuditLog
 from .contracts import ActionOutcome, BrowserAdapter, ChannelManifest, Plan
+from .errors import PolicyError
 from .locking import interprocess_lock
 from .policy import NETWORK_VERBS, PolicyEngine
 from .risk import RiskGuard
@@ -45,6 +46,14 @@ class Planner:
             network = action.verb in NETWORK_VERBS
             if network:
                 self.policy.wait_turn()
+                if self.policy.degraded:
+                    raise PolicyError(
+                        "quota reservation could not be persisted; refusing the action",
+                        rule="quota.persistence",
+                    )
+                # The interval wait can take seconds; another process may have
+                # tripped the shared cooldown while we were sleeping.
+                self.risk.ensure_ready()
 
             started = time.perf_counter()
             outcome = self.adapter.execute(action, timeout_ms=action.timeout_ms)

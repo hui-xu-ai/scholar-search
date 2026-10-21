@@ -59,16 +59,15 @@ def _unlock(handle: IO[bytes]) -> None:
 
 @contextmanager
 def interprocess_lock(path: Path, *, timeout_s: float = 60.0) -> Iterator[None]:
-    """Hold an exclusive cross-process lock (or a process lock as fallback)."""
+    """Hold an exclusive cross-process lock.
 
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        handle = path.open("a+b")
-        _ensure_byte(handle)
-    except OSError:
-        with _memory_lock(path):
-            yield
-        return
+    A lock that cannot be created is a hard failure: falling back to a
+    process-local lock would silently drop the cross-process safety boundary.
+    """
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = path.open("a+b")
+    _ensure_byte(handle)
 
     try:
         deadline = time.monotonic() + timeout_s

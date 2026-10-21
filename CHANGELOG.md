@@ -4,6 +4,32 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] - 2026-10-21
+
+### Fixed
+
+- **V01** A quota reservation that cannot be persisted now blocks that same action;
+  an existing but corrupt/unreadable quota file is a hard error instead of being read
+  as zero usage.
+- **V02** If the cross-process plan lock cannot be created, the plan is refused; the
+  process-local fallback was removed.
+- **V03** The shared cooldown is re-checked after the interval sleep and immediately
+  before the browser action.
+- **V04** A cross-domain login redirect is still refused, but the reply keeps the final
+  URL and risk metadata so the kernel can persist the 24h cooldown.
+- **V05** Extension permissions and content injection are scoped to the enabled
+  channel (`https://*.cnki.net/*`) and top frame only.
+
+### Changed
+
+- Skills now match the real contract: one page per call, no fabricated export
+  `count`, and a single, consistent rule against batch detail loops.
+- `install.ps1` falls back to `python`/`python3` on PATH and records the runtime HOME
+  in `runtime-home.txt`; the host reads it at startup.
+- Launcher logs move under `SCHOLAR_SEARCH_HOME/host/logs`.
+- `scholar-search assets` refuses to overwrite existing directories without `--force`.
+- Added `docs/integration/codex.md`.
+
 ## [0.3.1] - 2026-10-21
 
 Risk follow-up fixes from `independent-20261021-02-risk-followup`.
@@ -198,3 +224,4 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+

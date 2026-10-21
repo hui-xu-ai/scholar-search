@@ -18,7 +18,16 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $project = Split-Path -Parent $here
 
 if (-not $Python) {
-  $Python = Join-Path $project ".venv\Scripts\python.exe"
+  $venvPython = Join-Path $project ".venv\Scripts\python.exe"
+  if (Test-Path $venvPython) {
+    $Python = $venvPython
+  } else {
+    $command = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $command) {
+      $command = Get-Command python3 -ErrorAction SilentlyContinue
+    }
+    if ($command) { $Python = $command.Source }
+  }
 }
 
 $manifestPath = Join-Path $here "$hostName.json"
@@ -55,6 +64,7 @@ $runtimeHome = if ($env:SCHOLAR_SEARCH_HOME) {
 } else {
   Join-Path $env:LOCALAPPDATA "scholar-search"
 }
+Set-Content -Path (Join-Path $here "runtime-home.txt") -Value $runtimeHome -Encoding utf8
 $runtime = Join-Path $runtimeHome "host"
 New-Item -ItemType Directory -Path $runtime -Force | Out-Null
 try {
@@ -83,3 +93,5 @@ Write-Host "registered $hostName"
 Write-Host "  manifest : $manifestPath"
 Write-Host "  launcher : $launcher"
 Write-Host "  ext id   : $ExtensionId"
+
+

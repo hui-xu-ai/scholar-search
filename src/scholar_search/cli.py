@@ -35,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     assets = sub.add_parser("assets", help="copy bundled browser assets to a directory")
     assets.add_argument("--target", required=True, help="destination directory")
+    assets.add_argument("--force", action="store_true", help="replace existing asset directories")
 
     return parser
 
@@ -60,8 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         from .assets import copy_assets
 
         try:
-            copied = copy_assets(Path(args.target))
-        except (OSError, FileNotFoundError) as error:
+            copied = copy_assets(Path(args.target), force=args.force)
+        except (OSError, FileExistsError, FileNotFoundError) as error:
             print(f"cannot copy assets: {error}", file=sys.stderr)
             return 1
         for path in copied:

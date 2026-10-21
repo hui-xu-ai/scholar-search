@@ -6,11 +6,33 @@ using System.IO;
 // This launcher starts the project's Python entry point and inherits stdio.
 class ScholarHostLauncher
 {
+    static string RuntimeHome()
+    {
+        try
+        {
+            string runtimeFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "runtime-home.txt");
+            if (File.Exists(runtimeFile))
+            {
+                string home = File.ReadAllText(runtimeFile).Trim();
+                if (home.Length > 0) return home;
+            }
+        }
+        catch
+        {
+            // Fall through to the temp directory.
+        }
+        return null;
+    }
+
     static void Log(string message)
     {
         try
         {
-            string path = Path.Combine(Path.GetTempPath(), "scholar-launcher.log");
+            string home = RuntimeHome();
+            string path = home != null
+                ? Path.Combine(home, "host", "logs", "launcher.log")
+                : Path.Combine(Path.GetTempPath(), "scholar-launcher.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.AppendAllText(path, DateTime.Now.ToString("s") + " " + message + Environment.NewLine);
         }
         catch
@@ -66,3 +88,4 @@ class ScholarHostLauncher
         }
     }
 }
+

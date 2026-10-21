@@ -192,8 +192,23 @@ def prune_registry() -> None:
                 path.unlink()
 
 
+def _apply_runtime_home() -> None:
+    """Honour the HOME recorded at install time (browser env cannot set it)."""
+
+    if os.environ.get("SCHOLAR_SEARCH_HOME"):
+        return
+    marker = Path(__file__).with_name("runtime-home.txt")
+    try:
+        home = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return
+    if home:
+        os.environ["SCHOLAR_SEARCH_HOME"] = home
+
+
 def main() -> int:
     try:
+        _apply_runtime_home()
         ensure_host_runtime()
         prune_registry()
         _log(f"start pid={os.getpid()} cwd={os.getcwd()}")

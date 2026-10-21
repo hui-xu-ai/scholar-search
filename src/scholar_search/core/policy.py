@@ -55,6 +55,7 @@ class PolicyEngine:
         self._lock_path = self._state_path.with_suffix(".lock")
         self._fallback = QuotaState(day=self._today())
         self._degraded = False
+        self._state_error: str | None = None
 
     # -- quota ---------------------------------------------------------
 
@@ -67,14 +68,26 @@ class PolicyEngine:
 
     def _read(self) -> QuotaState:
         try:
-            raw = json.loads(self._state_path.read_text(encoding="utf-8"))
+            text = self._state_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            self._state_error = None
+            return QuotaState(day=self._today())
+        except OSError:
+            self._state_error = "unreadable"
+            return self._fallback
+
+        try:
+            raw = json.loads(text)
             state = QuotaState(
                 day=str(raw["day"]),
                 used=int(raw["used"]),
                 last=float(raw["last"]) if raw.get("last") is not None else None,
             )
-        except (OSError, ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError):
+            # An existing but broken file must not be read as "zero used".
+            self._state_error = "corrupt"
             return self._fallback
+        self._state_error = None
         if state.day != self._today():
             return QuotaState(day=self._today())
         return state
@@ -100,6 +113,10 @@ class PolicyEngine:
         if self._degraded:
             return self._fallback.used
         return self._read().used
+
+    @property
+    def degraded(self) -> bool:
+        return self._degraded
 
     @property
     def remaining_today(self) -> int:
@@ -171,6 +188,11 @@ class PolicyEngine:
                     rule="quota.persistence",
                 )
             state = self._read()
+            if self._state_error is not None:
+                raise PolicyError(
+                    f"quota state is {self._state_error}; refusing new network actions",
+                    rule="quota.state",
+                )
             if state.used >= self._limits.daily_request_limit:
                 raise PolicyError("daily quota exhausted", rule="quota.daily")
 
@@ -183,6 +205,8 @@ class PolicyEngine:
                     now = self._clock()
             state.used += 1
             state.last = now
+            # A failed write marks the engine degraded; the planner refuses to
+            # send the reserved action (see Planner below).
             self._write(state)
         return slept
 

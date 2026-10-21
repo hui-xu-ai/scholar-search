@@ -30,7 +30,7 @@ description: 把 scholar-search 返回的题录导出为 RIS 或 EndNote 文本�
 ## 返回
 
 ```json
-{"format": "ris", "count": 1, "text": "TY  - JOUR\nTI  - …\n…"}
+{"format": "ris", "text": "TY  - JOUR\nTI  - …\n…"}
 ```
 
 把 `text` 原样保存为 `.ris` 或 `.enw` 文件即可导入。
@@ -46,3 +46,4 @@ description: 把 scholar-search 返回的题录导出为 RIS 或 EndNote 文本�
 - 不要在导出时偷偷补 DOI 或卷期；
 - 不要声称“已下载全文”；
 - 不要把 RIS 文本再喂回检索接口。
+

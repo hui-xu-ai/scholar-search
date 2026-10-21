@@ -18,7 +18,7 @@ def assets_root() -> Path:
     return Path(str(files("scholar_search"))) / "assets"
 
 
-def copy_assets(target: Path) -> list[Path]:
+def copy_assets(target: Path, *, force: bool = False) -> list[Path]:
     """Copy the bundled browser assets into ``target`` and return the paths."""
 
     root = assets_root()
@@ -34,6 +34,8 @@ def copy_assets(target: Path) -> list[Path]:
             continue
         destination = target / name
         if destination.exists():
+            if not force:
+                raise FileExistsError(f"{destination} already exists; pass --force to replace it")
             shutil.rmtree(destination)
         shutil.copytree(source, destination)
         copied.append(destination)

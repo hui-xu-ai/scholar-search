@@ -101,22 +101,27 @@ async function onHostMessage(message, channel) {
       await waitComplete(tab.id);
 
       const updated = await chrome.tabs.get(tab.id);
-      if (!allowedHost(new URL(updated.url || params.url).hostname, domains)) {
-        throw new Error("policy.domain");
-      }
-      boundTabId = updated.id;
+      const finalUrl = updated.url || params.url;
       const meta = await pageMeta(updated.id);
       const status = Number(meta.status || 0);
-      if (status >= 400) throw new Error(`HTTP ${status}`);
-      return reply({
-        ok: true,
-        data: {
-          ...meta,
-          url: updated.url || params.url,
-          title: updated.title || "",
-          status: status || undefined,
-        },
-      });
+      const outOfScope = !allowedHost(new URL(finalUrl).hostname, domains);
+      const data = {
+        ...meta,
+        url: finalUrl,
+        title: updated.title || "",
+        status: status || undefined,
+      };
+      if (outOfScope || status >= 400) {
+        // Refuse the navigation, but keep the final URL so the kernel can see
+        // a login/verify redirect and persist the cooldown.
+        return reply({
+          ok: false,
+          error: outOfScope ? "policy.domain" : `HTTP ${status}`,
+          data,
+        });
+      }
+      boundTabId = updated.id;
+      return reply({ ok: true, data });
     }
 
     const tabId = boundTabId !== null ? boundTabId : (await activeTab())?.id;
@@ -143,3 +148,4 @@ async function onHostMessage(message, channel) {
 chrome.runtime.onInstalled.addListener(connect);
 chrome.runtime.onStartup.addListener(connect);
 connect();
+
