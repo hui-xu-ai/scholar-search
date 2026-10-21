@@ -1,9 +1,11 @@
 /* scholar-search bridge — content script.
  *
  * Implements the nine generic verbs. No channel selectors are hard-coded: the
- * caller passes selectors in the action parameters. Risk checks are generic
- * heuristics (visible captcha widget, visible login gate) evaluated after every
- * action, so a gate is reported before the next business step.
+ * caller passes selectors in the action parameters.
+ *
+ * Every reply — success, failure or missing element — carries a risk snapshot,
+ * and actions with side effects are refused while a captcha or login gate is
+ * already visible.
  */
 
 const MAX_HTML_BYTES = 1_000_000;
@@ -49,15 +51,19 @@ function isPresent(element) {
 function anyVisible(selectors) {
   for (const selector of selectors) {
     try {
-      for (const element of document.querySelectorAll(selector)) {
-        if (isVisible(element)) return true;
+      if (typeof document.querySelectorAll === "function") {
+        for (const element of document.querySelectorAll(selector)) {
+          if (isVisible(element)) return true;
+        }
+        continue;
       }
     } catch (error) {
-      try {
-        if (isVisible(document.querySelector(selector))) return true;
-      } catch (inner) {
-        // A selector the page does not support is simply skipped.
-      }
+      // Fall through to the single-element query below.
+    }
+    try {
+      if (isVisible(document.querySelector(selector))) return true;
+    } catch (error) {
+      // A selector the page does not support is simply skipped.
     }
   }
   return false;
@@ -110,6 +116,11 @@ function withRisk(result) {
   return { ...result, data: { ...(result.data || {}), ...riskSnapshot() } };
 }
 
+function riskPresent() {
+  const snapshot = riskSnapshot();
+  return snapshot.captcha_visible || snapshot.auth_required;
+}
+
 async function run(action, params) {
   let result;
   switch (action) {
@@ -120,8 +131,12 @@ async function run(action, params) {
       break;
     }
     case "type": {
+      if (riskPresent()) return withRisk({ ok: false, error: "risk.present" });
       const element = document.querySelector(params.selector);
-      if (!element) return { ok: false, error: "not_found" };
+      if (!element) {
+        result = { ok: false, error: "not_found" };
+        break;
+      }
       if (params.clear !== false) element.value = "";
       element.value = params.text;
       element.dispatchEvent(new Event("input", { bubbles: true }));
@@ -130,15 +145,23 @@ async function run(action, params) {
       break;
     }
     case "click": {
+      if (riskPresent()) return withRisk({ ok: false, error: "risk.present" });
       const element = document.querySelector(params.selector);
-      if (!element) return { ok: false, error: "not_found" };
+      if (!element) {
+        result = { ok: false, error: "not_found" };
+        break;
+      }
       element.click();
       result = { ok: true, data: {} };
       break;
     }
     case "select": {
+      if (riskPresent()) return withRisk({ ok: false, error: "risk.present" });
       const element = document.querySelector(params.selector);
-      if (!element) return { ok: false, error: "not_found" };
+      if (!element) {
+        result = { ok: false, error: "not_found" };
+        break;
+      }
       element.value = params.value;
       element.dispatchEvent(new Event("change", { bubbles: true }));
       result = { ok: true, data: {} };
@@ -150,16 +173,16 @@ async function run(action, params) {
       const truncated = cut < html.length;
       result = {
         ok: true,
-        data: {
-          html: truncated ? html.slice(0, cut) : html,
-          truncated,
-        },
+        data: { html: truncated ? html.slice(0, cut) : html, truncated },
       };
       break;
     }
     case "read_text": {
       const element = document.querySelector(params.selector);
-      if (!element) return { ok: false, error: "not_found" };
+      if (!element) {
+        result = { ok: false, error: "not_found" };
+        break;
+      }
       result = { ok: true, data: { text: (element.innerText || "").trim() } };
       break;
     }
@@ -174,7 +197,7 @@ async function run(action, params) {
       break;
     }
     default:
-      return { ok: false, error: "policy.verb" };
+      result = { ok: false, error: "policy.verb" };
   }
   return withRisk(result);
 }
@@ -192,6 +215,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type !== "dom_action") return undefined;
   run(message.action, message.params || {})
     .then(sendResponse)
-    .catch((error) => sendResponse({ ok: false, error: String(error) }));
+    .catch((error) => sendResponse({ ok: false, error: String(error), data: riskSnapshot() }));
   return true;
 });

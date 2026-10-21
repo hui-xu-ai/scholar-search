@@ -1,14 +1,16 @@
 /* scholar-search bridge — service worker.
  *
- * Relays actions from the native host to the active tab. It knows no site
- * structure: the kernel and the channel manifest decide which hosts and DOM
- * selectors are legitimate.
+ * Relays actions from the native host to one bound tab. The extension only
+ * accepts hosts inside its configured scope (the selected channel); the kernel
+ * and native host enforce the same list independently.
  */
 
 const HOST_NAME = "com.scholar.search";
 const PROTOCOL_VERSION = 1;
+const DEFAULT_DOMAINS = ["kns.cnki.net", "www.cnki.net"];
 
 let port = null;
+let boundTabId = null;
 
 function connect() {
   if (port) return;
@@ -24,6 +26,19 @@ function connect() {
     port = null;
     setTimeout(connect, 3000);
   }
+}
+
+function allowedHost(hostname, domains) {
+  const host = String(hostname || "").toLowerCase();
+  return domains.some((domain) => {
+    const value = String(domain).toLowerCase();
+    return host === value || host.endsWith(`.${value}`);
+  });
+}
+
+function domainsFor(message) {
+  const supplied = message && Array.isArray(message.domains) ? message.domains : [];
+  return supplied.length ? supplied : DEFAULT_DOMAINS;
 }
 
 async function activeTab() {
@@ -71,20 +86,26 @@ async function onHostMessage(message, channel) {
   if (message.type !== "action") return;
 
   const { id, action, params } = message;
+  const domains = domainsFor(message);
   const reply = (payload) => channel.postMessage({ type: "action_result", id, ...payload });
 
   try {
-    const tab = await activeTab();
-    if (!tab || !tab.id) throw new Error("no_active_tab");
-
     if (action === "goto") {
       const url = new URL(params.url);
-      if (url.protocol !== "https:") throw new Error("policy.url_scheme");
+      if (url.protocol !== "https:" || !allowedHost(url.hostname, domains)) {
+        throw new Error("policy.domain");
+      }
+      const tab = await activeTab();
+      if (!tab || !tab.id) throw new Error("no_active_tab");
       await chrome.tabs.update(tab.id, { url: params.url });
       await waitComplete(tab.id);
 
       const updated = await chrome.tabs.get(tab.id);
-      const meta = await pageMeta(tab.id);
+      if (!allowedHost(new URL(updated.url || params.url).hostname, domains)) {
+        throw new Error("policy.domain");
+      }
+      boundTabId = updated.id;
+      const meta = await pageMeta(updated.id);
       const status = Number(meta.status || 0);
       if (status >= 400) throw new Error(`HTTP ${status}`);
       return reply({
@@ -98,13 +119,22 @@ async function onHostMessage(message, channel) {
       });
     }
 
-    const result = await chrome.tabs.sendMessage(tab.id, {
+    const tabId = boundTabId !== null ? boundTabId : (await activeTab())?.id;
+    if (!tabId) throw new Error("no_active_tab");
+    if (boundTabId !== null) {
+      const current = await chrome.tabs.get(tabId).catch(() => null);
+      if (!current || !allowedHost(new URL(current.url).hostname, domains)) {
+        throw new Error("policy.tab_scope");
+      }
+    }
+
+    const result = await chrome.tabs.sendMessage(tabId, {
       type: "dom_action",
       action,
       params,
     });
-    if (!result || !result.ok) throw new Error((result && result.error) || "dom_failed");
-    return reply({ ok: true, data: result.data || {} });
+    if (!result) throw new Error("dom_failed");
+    return reply({ ok: Boolean(result.ok), error: result.error, data: result.data || {} });
   } catch (error) {
     return reply({ ok: false, error: String((error && error.message) || error) });
   }

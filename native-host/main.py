@@ -20,6 +20,7 @@ import time
 from pathlib import Path
 
 from scholar_search.adapters.bridge.host import BridgeHost
+from scholar_search.adapters.bridge.policy import TRUSTED_DOMAINS, narrow_domains
 from scholar_search.core.config import ensure_host_runtime, host_runtime_dir
 
 HOST_NAME = "com.scholar.search"
@@ -94,7 +95,9 @@ def serve_client(
 
             requested_domains = request.get("domains")
             if isinstance(requested_domains, list):
-                effective = tuple(str(item) for item in requested_domains if item)
+                effective = narrow_domains(
+                    (str(item) for item in requested_domains if item), domains
+                )
             else:
                 effective = domains
 
@@ -196,8 +199,9 @@ def main() -> int:
         _log(f"start pid={os.getpid()} cwd={os.getcwd()}")
         host = BridgeHost()
         token = secrets.token_urlsafe(24)
-        domains = tuple(
-            item for item in os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",") if item
+        domains = (
+            tuple(item for item in os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",") if item)
+            or TRUSTED_DOMAINS
         )
 
         previous = read_endpoint()

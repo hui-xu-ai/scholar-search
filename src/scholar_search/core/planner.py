@@ -1,22 +1,21 @@
 """Plan validation and execution.
 
 Sequencing lives here, not in adapters: this is the only place that can stop a
-plan between two actions when a risk signal appears. Plans are serialized
-process-wide, because the browser is a single shared resource.
+plan between two actions when a risk signal appears. A whole plan holds an
+inter-process lock, because the browser is a single shared resource, and the
+shared cooldown is re-checked before every action.
 """
 
 from __future__ import annotations
 
-import threading
 import time
 from dataclasses import dataclass
 
 from .audit import AuditLog
 from .contracts import ActionOutcome, BrowserAdapter, ChannelManifest, Plan
+from .locking import interprocess_lock
 from .policy import NETWORK_VERBS, PolicyEngine
 from .risk import RiskGuard
-
-_EXECUTION_LOCK = threading.Lock()
 
 
 @dataclass(slots=True)
@@ -27,7 +26,8 @@ class Planner:
     audit: AuditLog
 
     def run(self, plan: Plan, manifest: ChannelManifest) -> tuple[ActionOutcome, ...]:
-        with _EXECUTION_LOCK:
+        lock_path = self.policy.state_dir / "plan.lock"
+        with interprocess_lock(lock_path, timeout_s=90.0):
             return self._run_locked(plan, manifest)
 
     def _run_locked(self, plan: Plan, manifest: ChannelManifest) -> tuple[ActionOutcome, ...]:
@@ -39,6 +39,9 @@ class Planner:
 
         outcomes: list[ActionOutcome] = []
         for action in plan.actions:
+            # Another process may have tripped the shared cooldown mid-plan.
+            self.risk.ensure_ready()
+
             network = action.verb in NETWORK_VERBS
             if network:
                 self.policy.wait_turn()
@@ -46,9 +49,6 @@ class Planner:
             started = time.perf_counter()
             outcome = self.adapter.execute(action, timeout_ms=action.timeout_ms)
             elapsed_ms = outcome.duration_ms or int((time.perf_counter() - started) * 1000)
-
-            if network:
-                self.policy.note_request()
 
             self.audit.action(
                 channel=plan.channel,

@@ -264,6 +264,7 @@ class RiskSignal(StrEnum):
     HTTP_403 = "http_403"
     LOGIN_REDIRECT = "login_redirect"
     TEXT_MARKER = "text_marker"
+    RATE_LIMITED = "rate_limited"
 
 
 @dataclass(frozen=True, slots=True)

@@ -97,6 +97,10 @@ class RiskGuard:
         status = outcome.data.get("status")
         if status == 403 or status == "403":
             return RiskSignal.HTTP_403
+        if status == 429 or status == "429":
+            return RiskSignal.RATE_LIMITED
+        if outcome.error and "429" in outcome.error:
+            return RiskSignal.RATE_LIMITED
 
         # The content script reports whether the captcha widget is actually on
         # screen; scanning raw HTML would match the SDK's hidden preloaded DOM.

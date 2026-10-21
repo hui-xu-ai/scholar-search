@@ -4,6 +4,33 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-10-21
+
+Risk follow-up fixes from `independent-20261021-02-risk-followup`.
+
+### Fixed
+
+- **R01** Every content-script reply (success, timeout, missing element, exception)
+  carries the risk snapshot; `click`/`type`/`select` refuse to run while a captcha or
+  login gate is already visible; the background no longer drops `data` on failures.
+- **R02** A whole plan holds a cross-process lock; the quota slot is reserved
+  atomically in `wait_turn` (interval check + increment + persist), so two processes
+  cannot both spend the last request.
+- **R03** The shared cooldown is re-checked before every action, not only at plan start.
+- **R04** Actions stay bound to the tab opened by the plan's `goto`; a plan cannot
+  drift to whatever tab the user activates. The extension keeps a configured host
+  scope, and the host only lets a request narrow its trusted startup scope, never
+  replace it.
+- **R05** If quota persistence fails, the next `wait_turn` fails closed instead of
+  trusting the stale on-disk counter.
+- **R06** `HTTP 429` (status or error text) is now a terminal `rate_limited` signal.
+
+### Compatibility
+
+Two assertions in the earlier audit conflict with the newer risk scope and now fail
+by design: the host no longer accepts an arbitrary `example.org` manifest without a
+trusted scope, and the extension no longer navigates to unconfigured hosts.
+
 ## [0.3.0] - 2026-10-21
 
 Security and contract hardening from the independent offline audit

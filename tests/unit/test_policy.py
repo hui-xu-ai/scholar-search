@@ -76,9 +76,9 @@ def test_sleep_is_bounded() -> None:
         policy.validate_plan(plan, make_manifest())
 
 
-def test_wait_turn_enforces_interval() -> None:
+def test_wait_turn_enforces_interval(tmp_path) -> None:
     clock = FakeClock()
-    policy = engine(clock)
+    policy = engine(clock, state_path=tmp_path / "quota.json")
     first = policy.wait_turn()
     assert first == 0.0
     second = policy.wait_turn()
@@ -86,9 +86,9 @@ def test_wait_turn_enforces_interval() -> None:
     assert clock.sleeps
 
 
-def test_quota_exhaustion() -> None:
+def test_quota_exhaustion(tmp_path) -> None:
     clock = FakeClock()
-    policy = engine(clock)
+    policy = engine(clock, state_path=tmp_path / "quota.json")
     for _ in range(HARD.daily_request_limit):
         policy.wait_turn()
         policy.note_request()

@@ -3,28 +3,25 @@
 Every limit here is a floor or ceiling from :mod:`scholar_search.core.config`.
 Channels may tighten behaviour, never loosen it.
 
-The quota file is the single source of truth. It is read and written under an
-inter-process lock so two servers sharing one data directory cannot each spend
-the same last request or skip the interval.
+The quota file is the single source of truth. A network slot is *reserved*
+inside one atomic critical section (interval check + increment + persist), so
+two processes cannot both spend the last remaining request.
 """
 
 from __future__ import annotations
 
 import json
-import os
-import threading
 import time
-from collections.abc import Callable, Iterable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import IO
 from urllib.parse import urlparse
 
 from .config import HARD, HardLimits, app_home
 from .contracts import VERBS, Action, ChannelManifest, Plan
 from .errors import PolicyError
+from .locking import interprocess_lock
 from .params import validate_params
 
 NETWORK_VERBS: frozenset[str] = frozenset({"goto", "click", "select", "type"})
@@ -36,45 +33,6 @@ class QuotaState:
     day: str
     used: int = 0
     last: float | None = None
-
-
-_MEMORY_LOCK = threading.Lock()
-
-
-@contextmanager
-def _exclusive(path: Path) -> Iterator[IO[bytes]]:
-    """Cross-process lock on a sidecar file (Windows and POSIX)."""
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = path.open("a+b")
-    try:
-        if os.name == "nt":
-            import msvcrt
-
-            handle.seek(0)
-            if handle.tell() == 0:
-                handle.write(b"0")
-                handle.flush()
-            handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)  # type: ignore[attr-defined]
-        yield handle
-    finally:
-        try:
-            if os.name == "nt":
-                import msvcrt
-
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
-        finally:
-            handle.close()
 
 
 class PolicyEngine:
@@ -96,11 +54,16 @@ class PolicyEngine:
         self._state_path = state_path or (app_home() / "state" / "quota.json")
         self._lock_path = self._state_path.with_suffix(".lock")
         self._fallback = QuotaState(day=self._today())
+        self._degraded = False
 
     # -- quota ---------------------------------------------------------
 
     def _today(self) -> str:
         return date.today().isoformat()
+
+    @property
+    def state_dir(self) -> Path:
+        return self._state_path.parent
 
     def _read(self) -> QuotaState:
         try:
@@ -116,31 +79,26 @@ class PolicyEngine:
             return QuotaState(day=self._today())
         return state
 
-    @contextmanager
-    def _guard(self) -> Iterator[None]:
-        """Cross-process lock when available; process lock otherwise."""
-
-        try:
-            with _exclusive(self._lock_path):
-                yield
-        except OSError:
-            with _MEMORY_LOCK:
-                yield
-
-    def _write(self, state: QuotaState) -> None:
+    def _write(self, state: QuotaState) -> bool:
         try:
             self._state_path.parent.mkdir(parents=True, exist_ok=True)
             self._state_path.write_text(
                 json.dumps({"day": state.day, "used": state.used, "last": state.last}),
                 encoding="utf-8",
             )
-            self._fallback = state
         except OSError:
-            # Persistence may fail; the in-process counter still applies.
+            # Unknown counters are unsafe: stop after the reservation that
+            # could not be persisted, instead of trusting the stale file.
+            self._degraded = True
             self._fallback = state
+            return False
+        self._fallback = state
+        return True
 
     @property
     def used_today(self) -> int:
+        if self._degraded:
+            return self._fallback.used
         return self._read().used
 
     @property
@@ -202,11 +160,16 @@ class PolicyEngine:
     # -- metering ------------------------------------------------------
 
     def wait_turn(self) -> float:
-        """Sleep until the next request is allowed. Returns the slept seconds."""
+        """Reserve one network slot, sleeping for the interval if needed."""
 
         required = self._limits.min_interval_ms + self._jitter()
         slept = 0.0
-        with self._guard():
+        with interprocess_lock(self._lock_path, timeout_s=30.0):
+            if self._degraded:
+                raise PolicyError(
+                    "quota state is not writable; refusing new network actions",
+                    rule="quota.persistence",
+                )
             state = self._read()
             if state.used >= self._limits.daily_request_limit:
                 raise PolicyError("daily quota exhausted", rule="quota.daily")
@@ -218,13 +181,15 @@ class PolicyEngine:
                     slept = remaining_ms / 1000
                     self._sleep(slept)
                     now = self._clock()
+            state.used += 1
             state.last = now
             self._write(state)
         return slept
 
     def note_request(self) -> None:
-        with self._guard():
-            state = self._read()
-            state.used += 1
-            state.last = self._clock()
-            self._write(state)
+        """Compatibility shim: the slot is already reserved by ``wait_turn``."""
+
+    def reserve(self) -> float:
+        """Alias for ``wait_turn`` used by the planner."""
+
+        return self.wait_turn()

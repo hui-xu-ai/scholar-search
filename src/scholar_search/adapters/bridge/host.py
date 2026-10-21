@@ -155,6 +155,7 @@ class BridgeHost:
             "id": request_id,
             "action": action,
             "params": params,
+            "domains": list(domains or ()),
         }
         error = validate_request(message, domains)
         if error is not None:
