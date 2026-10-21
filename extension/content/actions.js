@@ -180,16 +180,8 @@ async function run(action, params) {
         result = { ok: false, error: "not_found" };
         break;
       }
-      // Reply first, activate on the next task: a submit button can start a
-      // navigation that tears this context down before the reply is sent.
-      setTimeout(() => {
-        try {
-          clickElement(element);
-        } catch (error) {
-          // The page may have navigated; the plan verifies with wait_for.
-        }
-      }, 0);
-      result = { ok: true, data: { deferred: true } };
+      clickElement(element);
+      result = { ok: true, data: {} };
       break;
     }
     case "select": {
@@ -255,5 +247,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch((error) => sendResponse({ ok: false, error: String(error), data: riskSnapshot() }));
   return true;
 });
+
 
 

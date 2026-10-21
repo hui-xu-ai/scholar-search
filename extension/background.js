@@ -133,11 +133,26 @@ async function onHostMessage(message, channel) {
       }
     }
 
-    const result = await chrome.tabs.sendMessage(tabId, {
-      type: "dom_action",
-      action,
-      params,
-    });
+    const message = { type: "dom_action", action, params };
+    let result;
+    if (action === "click") {
+      // A navigational click can destroy the content-script context before it
+      // replies. Treat a lost reply as "navigation started"; the plan's
+      // following wait_for verifies the page.
+      try {
+        result = await Promise.race([
+          chrome.tabs.sendMessage(tabId, message),
+          new Promise((resolve) => setTimeout(() => resolve(undefined), 800)),
+        ]);
+      } catch (error) {
+        result = undefined;
+      }
+      if (result === undefined) {
+        return reply({ ok: true, data: { navigation_expected: true } });
+      }
+    } else {
+      result = await chrome.tabs.sendMessage(tabId, message);
+    }
     if (!result) throw new Error("dom_failed");
     return reply({ ok: Boolean(result.ok), error: result.error, data: result.data || {} });
   } catch (error) {
@@ -148,4 +163,5 @@ async function onHostMessage(message, channel) {
 chrome.runtime.onInstalled.addListener(connect);
 chrome.runtime.onStartup.addListener(connect);
 connect();
+
 

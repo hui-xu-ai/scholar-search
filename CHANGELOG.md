@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.9] - 2026-10-21
+
+### Fixed
+
+- **Click delivery** 0.3.8 deferred the click with setTimeout, which Chrome throttles
+  in background tabs; pagination then executed after the read and stayed on page 1.
+  The content script clicks synchronously again, and the background now treats a
+  click whose reply is lost to navigation as started (the plan's wait_for verifies
+  the page). Non-click verbs still require a real reply.
+
 ## [0.3.8] - 2026-10-21
 
 ### Fixed
@@ -291,6 +301,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 
