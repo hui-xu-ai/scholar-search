@@ -23,7 +23,7 @@ class HardLimits:
     max_interval_ms: int = 6_000
     max_pages_per_call: int = 3
     max_pages_per_session: int = 8
-    daily_request_limit: int = 200
+    daily_request_limit: int = 300
     cooldown_hours: int = 24
     concurrency: int = 1
     max_actions_per_plan: int = 40

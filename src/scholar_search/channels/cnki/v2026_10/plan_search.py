@@ -164,5 +164,3 @@ def build(query: SearchQuery) -> Plan:
         Action("read_html", timeout_ms=READ_TIMEOUT_MS),
     )
     return Plan(channel="cnki", purpose="search", actions=actions)
-
-

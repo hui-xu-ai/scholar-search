@@ -206,4 +206,3 @@ def parse(html: str, url: str) -> Record:
         url=url,
         doc_type=doc_type,
     )
-

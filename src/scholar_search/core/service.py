@@ -228,4 +228,3 @@ def _html(outcomes: Sequence[ActionOutcome]) -> str:
         if isinstance(value, str):
             return value
     raise ParseError("plan produced no html payload")
-

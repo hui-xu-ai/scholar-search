@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.13] - 2026-10-21
+
+### Changed
+
+- Daily network-action ceiling raised from 200 to 300 per ADR 0005. All other limits
+  are unchanged: 3 s floor plus jitter, concurrency 1, page 1–3, `limit` 1–50,
+  40 actions / 120 s per plan, 24 h cooldown.
+- Documented captcha handling: the plan stops and returns `blocked`; the user solves
+  the challenge in the browser, then explicitly clears the cooldown with
+  `scholar-search reset --confirm`. No automatic retry.
+
 ## [0.3.12] - 2026-10-21
 
 ### Fixed
@@ -339,6 +350,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 
