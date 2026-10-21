@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.15] - 2026-10-21
+
+### Fixed
+
+- Pause deadlines now carry a 2 s reply margin. In live use the 2.5 s settle after a
+  navigation answered at 3004 ms against a 3000 ms deadline and the plan died with
+  `bridge.timeout`. The cause is timer alignment: while the CNKI window is not the
+  active window the browser buckets timers to whole seconds, so any pause can answer up
+  to ~1 s late. Every `sleep` action now uses `_settle()`, which adds the margin.
+- Worst-case plan budget rebalanced to stay inside the 120 s cap that the extra margins
+  would have broken: `read_html` 6 s → 4 s, grid/filter waits 8 s → 6 s, query-box and
+  result-grid waits 12 s → 10 s. Observed live latency is unchanged (navigation ~1.9 s,
+  grid ~2.1 s), so each deadline still sits 3–5× above it. ADR 0005 limits, the verb
+  set and the plan shape are untouched.
+
 ## [0.3.14] - 2026-10-21
 
 ### Fixed

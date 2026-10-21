@@ -168,6 +168,25 @@ def test_plan_stays_within_budget() -> None:
     assert sum(action.timeout_ms for action in plan.actions) <= 120_000
 
 
+def test_worst_case_plan_stays_within_budget() -> None:
+    plan = plan_search.build(
+        SearchQuery(text="IPMC", channel="cnki", page=3, limit=50, sort="date")
+    )
+    assert sum(action.timeout_ms for action in plan.actions) <= 120_000
+
+
+def test_sleep_actions_leave_room_for_a_throttled_tab() -> None:
+    # A background window aligns timers to one-second buckets, so a deadline
+    # equal to the pause itself fires before the pause can answer.
+    plan = plan_search.build(
+        SearchQuery(text="IPMC", channel="cnki", page=3, limit=50, sort="date")
+    )
+    sleeps = [action for action in plan.actions if action.verb == "sleep"]
+    assert sleeps
+    for action in sleeps:
+        assert action.timeout_ms - int(action.params["ms"]) >= 1_500
+
+
 def test_parses_recorded_live_page() -> None:
     html = FIXTURE.read_text(encoding="utf-8")
     page = get_channel().parse_search(html, query=SearchQuery(text="IPMC"))
