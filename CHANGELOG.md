@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.11] - 2026-10-21
+
+### Changed
+
+- **Human-like pacing** The kernel now adds 0–1.2 s of random jitter on top of the
+  3 s floor, with a ~10% chance of a 2–4 s pause. Clicks scroll the target into view and
+  fire mousedown/mouseup/click with random 40–90 ms gaps; navigation gets a 0.5–1.5 s
+  dwell before the first action. Typing stays paste-like, as a person would paste a query.
+- **Sort correction** The grid is read after sorting; if the active column is `ASC`, the
+  channel returns one corrective plan and the service runs it, instead of blind
+  double-clicks. This keeps the requested descending order without relying on timing.
+
 ## [0.3.10] - 2026-10-21
 
 ### Fixed
@@ -316,6 +328,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 

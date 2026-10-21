@@ -6,7 +6,10 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from bs4 import BeautifulSoup
+
 from ....core.contracts import (
+    Action,
     ChannelManifest,
     Plan,
     Record,
@@ -15,6 +18,7 @@ from ....core.contracts import (
 )
 from ....core.errors import ChannelError
 from . import parse_detail, parse_search, plan_detail, plan_search
+from .selectors import SEARCH_READY, SORT
 
 
 def _load_manifest() -> ChannelManifest:
@@ -40,6 +44,40 @@ class CnkiChannel:
 
     def parse_search(self, html: str, *, query: SearchQuery) -> SearchPage:
         return parse_search.parse(html, query)
+
+    def sort_fix(self, query: SearchQuery, html: str) -> Plan | None:
+        """Return a corrective plan when the grid ended up ascending."""
+
+        selector = SORT.get(query.sort)
+        if selector is None or query.sort == "relevance":
+            return None
+        node = BeautifulSoup(html, "lxml").select_one(selector)
+        if node is None:
+            return None
+        classes = [str(item).upper() for item in (node.get("class") or [])]
+        if "ASC" not in classes:
+            return None
+        return Plan(
+            channel="cnki",
+            purpose="search",
+            actions=(
+                Action(
+                    "click",
+                    {"selector": selector},
+                    timeout_ms=plan_search.CLICK_TIMEOUT_MS,
+                ),
+                Action("sleep", {"ms": 1500}, timeout_ms=2_000),
+                Action(
+                    "wait_for",
+                    {
+                        "selector": SEARCH_READY,
+                        "timeout_ms": plan_search.FILTER_WAIT_MS,
+                    },
+                    timeout_ms=plan_search.FILTER_WAIT_MS + plan_search.WAIT_REPLY_MARGIN_MS,
+                ),
+                Action("read_html", timeout_ms=plan_search.READ_TIMEOUT_MS),
+            ),
+        )
 
     def plan_detail(self, url: str) -> Plan:
         return plan_detail.build(url)

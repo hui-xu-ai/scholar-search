@@ -146,11 +146,11 @@ def test_sort_uses_result_grid_tabs() -> None:
     # The grid already opens on publication-time DESC; clicking would toggle it.
     plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", sort="date"))
     selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
-    assert "#orderList li[data-sort='PT']" not in selectors
+    assert selectors.count("#orderList li[data-sort='PT']") == 1
 
     plan = plan_search.build(SearchQuery(text="IPMC", channel="cnki", sort="citation"))
     selectors = [action.params.get("selector") for action in plan.actions if action.verb == "click"]
-    assert "#orderList li[data-sort='CF']" in selectors
+    assert selectors.count("#orderList li[data-sort='CF']") == 1
 
 
 def test_unsupported_filters_fail_loudly() -> None:
@@ -292,3 +292,15 @@ def test_online_first_detail_is_journal_from_header_link() -> None:
     record = _parse_detail_html(html)
     assert record.doc_type == "journal"
     assert record.volume is None
+
+
+def test_sort_fix_only_when_ascending() -> None:
+    channel = get_channel()
+    query = SearchQuery(text="x", channel="cnki", sort="date")
+    asc = '<ul id="orderList"><li data-sort="PT" class="ASC cur">x</li></ul>'
+    desc = '<ul id="orderList"><li data-sort="PT" class="DESC cur">x</li></ul>'
+
+    plan = channel.sort_fix(query, asc)
+    assert plan is not None
+    assert any(action.verb == "click" for action in plan.actions)
+    assert channel.sort_fix(query, desc) is None

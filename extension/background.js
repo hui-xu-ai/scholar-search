@@ -99,6 +99,7 @@ async function onHostMessage(message, channel) {
       if (!tab || !tab.id) throw new Error("no_active_tab");
       await chrome.tabs.update(tab.id, { url: params.url });
       await waitComplete(tab.id);
+      await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
 
       const updated = await chrome.tabs.get(tab.id);
       const finalUrl = updated.url || params.url;
@@ -179,6 +180,7 @@ async function onHostMessage(message, channel) {
 chrome.runtime.onInstalled.addListener(connect);
 chrome.runtime.onStartup.addListener(connect);
 connect();
+
 
 
 

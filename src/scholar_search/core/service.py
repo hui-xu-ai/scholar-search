@@ -68,7 +68,18 @@ class ScholarService:
             return _page_from(cached)
 
         plan = channel.plan_search(query)
-        page = channel.parse_search(_html(self._run(plan, spec)), query=query)
+        outcomes = self._run(plan, spec)
+        html = _html(outcomes)
+        fixer = getattr(channel, "sort_fix", None)
+        for _ in range(2):
+            if fixer is None:
+                break
+            fix_plan = fixer(query, html)
+            if fix_plan is None:
+                break
+            outcomes = self._run(fix_plan, spec)
+            html = _html(outcomes)
+        page = channel.parse_search(html, query=query)
 
         records = page.records
         if query.year_from is not None or query.year_to is not None:

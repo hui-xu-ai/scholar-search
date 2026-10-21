@@ -30,11 +30,11 @@ _EXPRESSION = re.compile(
 )
 
 PAGE_TURN_MS = 1800
-NAV_TIMEOUT_MS = 12_000
+NAV_TIMEOUT_MS = 10_000
 WAIT_TIMEOUT_MS = 12_000
 INPUT_TIMEOUT_MS = 3_000
-CLICK_TIMEOUT_MS = 3_000
-READ_TIMEOUT_MS = 7_000
+CLICK_TIMEOUT_MS = 2_200
+READ_TIMEOUT_MS = 6_000
 FILTER_WAIT_MS = 8_000
 WAIT_REPLY_MARGIN_MS = 2_000
 
@@ -67,7 +67,7 @@ def _sort(query: SearchQuery) -> tuple[Action, ...]:
     selector = SORT.get(query.sort)
     # The result grid already opens on 发表时间 DESC, so explicit date sorting
     # needs no clicks (and clicking would toggle it to ascending).
-    if selector is None or query.sort in ("relevance", "date"):
+    if selector is None or query.sort == "relevance":
         return ()
     return (
         # Reset to relevance first: the grid remembers the direction of the
@@ -75,10 +75,7 @@ def _sort(query: SearchQuery) -> tuple[Action, ...]:
         Action("click", {"selector": SORT["relevance"]}, timeout_ms=CLICK_TIMEOUT_MS),
         Action("sleep", {"ms": 900}, timeout_ms=2_000),
         Action("click", {"selector": selector}, timeout_ms=CLICK_TIMEOUT_MS),
-        Action("sleep", {"ms": 1200}, timeout_ms=2_000),
-        # The first activation sorts ascending; the second toggles to descending.
-        Action("click", {"selector": selector}, timeout_ms=CLICK_TIMEOUT_MS),
-        Action("sleep", {"ms": 1200}, timeout_ms=2_000),
+        Action("sleep", {"ms": 1500}, timeout_ms=2_000),
         Action(
             "wait_for",
             {"selector": SEARCH_READY, "timeout_ms": FILTER_WAIT_MS},
@@ -162,8 +159,3 @@ def build(query: SearchQuery) -> Plan:
         Action("read_html", timeout_ms=READ_TIMEOUT_MS),
     )
     return Plan(channel="cnki", purpose="search", actions=actions)
-
-
-
-
-

@@ -1,7 +1,7 @@
 scholar-search
 ==============
 
-Version: 0.3.10 (2026-10-21)
+Version: 0.3.11 (2026-10-21)
 
 Academic search: a read-only, microkernel-based scholarly metadata service.
 
@@ -30,6 +30,7 @@ Data
 No bibliographic data, credentials, cookies, or session material is
 distributed with this project. Test fixtures are recorded page structure with
 personal and session data removed.
+
 
 
 

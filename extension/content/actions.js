@@ -133,6 +133,34 @@ function hrefOf(element) {
 // click() runs that javascript: URL, which the page CSP blocks. Cancel only the
 // default navigation for this one synthetic activation; the site's own click
 // handlers still run.
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function mouseEvent(type) {
+  const options = { bubbles: true, cancelable: true, view: window };
+  return typeof MouseEvent === "function" ? new MouseEvent(type, options) : new Event(type, options);
+}
+
+// Scroll into view and press like a person: short pauses between down/up/click.
+async function humanClick(element) {
+  try {
+    if (typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ block: "center", inline: "nearest" });
+    }
+  } catch (error) {
+    // Not fatal; the element may not be scrollable.
+  }
+  await sleep(randomBetween(80, 200));
+  if (typeof element.dispatchEvent === "function") {
+    element.dispatchEvent(mouseEvent("mousedown"));
+    await sleep(randomBetween(40, 90));
+    element.dispatchEvent(mouseEvent("mouseup"));
+    await sleep(randomBetween(40, 90));
+  }
+  clickElement(element);
+}
+
 function clickElement(element) {
   const href = hrefOf(element);
   const jsHref = typeof href === "string" && href.trim().toLowerCase().startsWith("javascript:");
@@ -180,7 +208,7 @@ async function run(action, params) {
         result = { ok: false, error: "not_found" };
         break;
       }
-      clickElement(element);
+      await humanClick(element);
       result = { ok: true, data: {} };
       break;
     }
@@ -247,6 +275,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch((error) => sendResponse({ ok: false, error: String(error), data: riskSnapshot() }));
   return true;
 });
+
 
 
 

@@ -11,6 +11,7 @@ two processes cannot both spend the last remaining request.
 from __future__ import annotations
 
 import json
+import random
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -35,6 +36,15 @@ class QuotaState:
     last: float | None = None
 
 
+def _default_jitter() -> float:
+    """Human-like spacing above the hard floor; never below it."""
+
+    delay = random.uniform(0, 1_200)
+    if random.random() < 0.1:
+        delay += random.uniform(2_000, 4_000)
+    return delay
+
+
 class PolicyEngine:
     """Validates plans and meters their execution."""
 
@@ -50,7 +60,7 @@ class PolicyEngine:
         self._limits = limits
         self._clock = clock
         self._sleep = sleeper
-        self._jitter = jitter or (lambda: 0.0)
+        self._jitter = jitter or _default_jitter
         self._state_path = state_path or (app_home() / "state" / "quota.json")
         self._lock_path = self._state_path.with_suffix(".lock")
         self._fallback = QuotaState(day=self._today())
