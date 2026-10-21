@@ -12,13 +12,29 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | `D:\Python\DeepSeek\DateWork\scholar-search` |
-| 分支 / HEAD | `main` / `c5159c4`（交接文档提交之前；以 `git log -1` 为准） |
-| 最新 tag | `v0.3.15` |
-| 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.15`（已部署并真机验证） |
-| Codex 配置 | `C:\Users\xuhui\.codex\config.toml` → 0.3.15 venv |
-| DSH bundle | `scholar-search-dsh-bundle` 的 `command` 与 `version` 已改 0.3.15 |
-| 扩展 | 0.3.11 加载的 JS；0.3.12–0.3.15 只有 Python 改动，**无需重载** |
-| 原生宿主 | HKCU 注册已指向 0.3.15 的 manifest，进程已从 0.3.15 目录重启 |
+| 分支 / HEAD | `main` / `376694a`（交接文档提交之前；以 `git log -1` 为准） |
+| 最新 tag | `v0.3.16` |
+| 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.16`（已部署并真机验证） |
+| Codex 配置 | `C:\Users\xuhui\.codex\config.toml` → 0.3.16 venv |
+| DSH bundle | `scholar-search-dsh-bundle` 的 `command` 与 `version` 已改 0.3.16 |
+| 扩展 | 0.3.11 加载的 JS；0.3.12–0.3.16 只有 Python 改动，**无需重载** |
+| 原生宿主 | HKCU 注册已指向 0.3.16 的 manifest，进程已从 0.3.16 目录重启 |
+
+### 0.3.16：文献类型归一化（本轮）
+
+现象：按被引排序的一次检索里，一本图书的 `doc_type` 是 `"中文图书"` 而不是 `book`。
+原因：`parse_search._doc_type` 用 `_DOC_TYPES.get(token, token.casefold())` 兜底，
+`casefold()` 对中文无效，未映射的原始中文串直接进了记录；导出层认不出，RIS 退化成
+`GEN`（图书被当成通用条目）。
+
+修法：新增 `channels/cnki/v2026_10/doc_types.py`，两个解析器共用：
+剥语言前缀（中文/外文/西文/英文/日文/俄文）、剥包装（《》〈〉()（）[]【】）、
+剥 `文献类型:` 标签、剥「网络首发」等状态词，再查规范表；
+**查不到就返回 `None`**，让导出层按通用类型渲染并注明「来源未给出类型」，
+而不是把一个没有意义的中文字符串塞进记录。
+
+真机验证（走 0.3.16 安装目录）：同一查询的 5 条记录里，
+图书那条现在是 `'book'`，导出为 `TY  - BOOK` / `%0 Book`。
 
 ### 0.3.14 → 0.3.15 这一轮做了什么
 
@@ -53,7 +69,7 @@
 8. `Scripts\scholar-search.cmd` 仍是一行 `python.exe -m scholar_search.cli %*`，没有复制旧 exe。
 
 9. 重启 DSH。重启后 MCP 服务进程换成
-   `installations\0.3.15\venv\Scripts\python.exe`，官方 `mcp__scholar-search__*`
+   `installations\0.3.16\venv\Scripts\python.exe`，官方 `mcp__scholar-search__*`
    链路才用上 0.3.15 的计划代码（已验证：进程路径、`status`、一次真实 `search`）。
 
 
@@ -74,7 +90,7 @@
   正是定时器按整秒分桶的证据。运行方式见第 8 节。
 - **部署后复验（走安装目录，不用仓库源码）**：`石墨烯`、`limit=5` → 9.6 秒，
   `total=111875`，5 条记录，配额 101→98。用的是
-  `installations\0.3.15\venv\Scripts\python.exe`，证明部署树本身可用。
+  `installations\0.3.16\venv\Scripts\python.exe`，证明部署树本身可用。
 - **重启 DSH 后走官方 MCP 链路**：`mcp__scholar-search__search`
   （`钙钛矿太阳能电池`、`limit=3`）→ `total=11820`，3 条记录，标题/作者/期刊正确。
   审计里那次 `sleep` 耗时 **3145ms** 且成功——正是被节流的场景，
@@ -102,7 +118,7 @@
 
 ## 6. 当前配额与限制
 
-- 日期 `2026-10-21`，已用 206 / 300，剩余 **94**，无冷却。
+- 日期 `2026-10-21`，已用 224 / 300，剩余 **76**，无冷却。
 - 一次 `search` 记 **3** 个网络动作（`goto` + `type` + `click`）；`sleep`/`wait_for`/
   `read_html` 等读动词不占配额。
 - 每日 300 个网络动作（ADR 0005）。
@@ -176,7 +192,7 @@ print(page.total, page.page, len(page.records))
 $env:SCHOLAR_SEARCH_HOME='C:\Users\xuhui\AppData\Local\scholar-search'   # 直接用真 HOME，配额/审计不分叉
 $env:PYTHONPATH='D:\Python\DeepSeek\DateWork\scholar-search\src'
 $env:PYTHONDONTWRITEBYTECODE='1'
-& 'C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.15\venv\Scripts\python.exe' -B accept-live.py
+& 'C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.16\venv\Scripts\python.exe' -B accept-live.py
 ```
 
 注意：
@@ -238,10 +254,14 @@ uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
       暂停动作加 2s 回包余量，并从读/等待超时里腾出预算。真机已通过（见第 3 节）。
 - [x] 升级线上到 0.3.15：安装目录、Codex、DSH bundle、HKCU 注册、宿主进程全部换好，
       部署后走安装目录真机复验通过（见第 2、3 节）。
-- [x] 重启 DSH，MCP 服务进程已换到 0.3.15（`installations\0.3.15\venv\Scripts\python.exe`），官方链路真机通过。
+- [x] 重启 DSH，MCP 服务进程换到 0.3.15，官方链路真机通过。
+- [x] 修文献类型归一化，发 `0.3.16`（`376694a`），安装目录 / Codex / bundle / 宿主全部换到
+      0.3.16，并走安装目录真机验证（图书 → `book` → `TY  - BOOK`）。
+- [ ] **再重启一次 DSH**：当前 MCP 服务进程还是 0.3.15 的代码，`doc_type` 修复要重启后才在
+      `mcp__scholar-search__*` 里生效。不重启也不影响检索，只是图书类型会退回 `中文图书`。
 - [ ] 观察 `sleep` / `type` 超时是否还会出现；出现就先看 `duration_ms` 是否贴超时、
       再确认 CNKI 窗口在前台且只有一个可见窗口
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
-- [ ] 复验时按第 8 节自测，注意配额（写本文件时 206/300，余 94；一次检索 = 3）
-- [ ] 0.3.13 与更早的安装目录已无用，可择日清理（`installations\0.3.2` … `0.3.13`）
+- [ ] 复验时按第 8 节自测，注意配额（写本文件时 224/300，余 76；一次检索 = 3）
+- [ ] 旧安装目录可择日清理：`installations\0.3.2` … `0.3.15` 都已无用（0.3.16 是当前版本）
 
