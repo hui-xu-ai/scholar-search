@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.14] - 2026-10-21
+
+### Fixed
+
+- Search and expert-search plans wait 2.5 s after the opening navigation before looking
+  for the query box. CNKI's first load performs a second hop that replaced the content
+  script, so `type` could fail with `bridge.timeout` even though `goto` and `wait_for`
+  had succeeded. Behaviour, limits and verbs are unchanged; the plan now has one extra
+  `sleep` action.
+
 ## [0.3.13] - 2026-10-21
 
 ### Changed

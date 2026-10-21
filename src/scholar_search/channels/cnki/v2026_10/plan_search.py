@@ -114,6 +114,7 @@ def build(query: SearchQuery) -> Plan:
         expert_url = f"{EXPERT['page']}&t={nonce}"
         head = (
             Action("goto", {"url": expert_url}, timeout_ms=NAV_TIMEOUT_MS),
+            Action("sleep", {"ms": 2500}, timeout_ms=3_000),
             Action(
                 "wait_for",
                 {"selector": EXPERT["input"], "timeout_ms": WAIT_TIMEOUT_MS},
@@ -134,6 +135,7 @@ def build(query: SearchQuery) -> Plan:
         search_url = f"{SEARCH_PAGE}?t={nonce}"
         head = (
             Action("goto", {"url": search_url}, timeout_ms=NAV_TIMEOUT_MS),
+            Action("sleep", {"ms": 2500}, timeout_ms=3_000),
             Action(
                 "wait_for",
                 {"selector": SEARCH["input"], "timeout_ms": WAIT_TIMEOUT_MS},

@@ -67,6 +67,7 @@ def test_search_plan_drives_the_search_box() -> None:
     assert plan.purpose == "search"
     assert [action.verb for action in plan.actions] == [
         "goto",
+        "sleep",
         "wait_for",
         "type",
         "click",
@@ -74,7 +75,7 @@ def test_search_plan_drives_the_search_box() -> None:
         "read_html",
     ]
     assert str(plan.actions[0].params["url"]).startswith("https://kns.cnki.net/kns8s/search")
-    assert plan.actions[2].params["text"] == "人工智能"
+    assert plan.actions[3].params["text"] == "人工智能"
 
 
 def test_expression_plan_uses_expert_page() -> None:
@@ -84,9 +85,9 @@ def test_expression_plan_uses_expert_page() -> None:
     assert str(plan.actions[0].params["url"]).startswith(
         "https://kns.cnki.net/kns8s/AdvSearch?type=expert"
     )
-    assert plan.actions[2].params["text"] == expression
-    assert plan.actions[2].params["selector"] == "textarea.majorSearch"
-    assert plan.actions[3].params["selector"] == "input.btn-search"
+    assert plan.actions[3].params["text"] == expression
+    assert plan.actions[3].params["selector"] == "textarea.majorSearch"
+    assert plan.actions[4].params["selector"] == "input.btn-search"
 
 
 def test_all_documented_fields_route_to_expert_page() -> None:
