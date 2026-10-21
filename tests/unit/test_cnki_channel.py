@@ -8,6 +8,7 @@ from scholar_search.core.contracts import SearchQuery
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_search_2026_10.html"
 DETAIL_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_2026_10.html"
 PRINT_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_print_2026_10.html"
+MIXED_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_search_mixed_types.html"
 
 SEARCH_HTML = """
 <html><body>
@@ -227,3 +228,23 @@ def test_parse_detail_extracts_print_issue() -> None:
     assert record.volume == "54"
     assert record.issue == "01"
     assert record.pages == "184-195"
+
+
+def test_parse_search_keeps_document_type() -> None:
+    html = MIXED_FIXTURE.read_text(encoding="utf-8")
+    page = get_channel().parse_search(html, query=SearchQuery(text="x"))
+
+    assert [record.doc_type for record in page.records] == [
+        "journal",
+        "thesis",
+        "conference",
+    ]
+
+
+def test_detail_plan_wait_stays_below_action_budget() -> None:
+    from scholar_search.channels.cnki.v2026_10 import plan_detail
+
+    plan = plan_detail.build("https://kns.cnki.net/kcms2/article/abstract?v=x")
+    wait = next(action for action in plan.actions if action.verb == "wait_for")
+    assert wait.params["timeout_ms"] < wait.timeout_ms
+    assert wait.params["selector"] == ".wx-tit h1, #ChDivSummary"

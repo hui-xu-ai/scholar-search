@@ -11,6 +11,21 @@ from ....core.errors import ParseError
 from .selectors import SEARCH
 
 _TOTAL = re.compile(r"([\d,]+)")
+
+# td.data carries the document type; keep a canonical token for export.
+_DOC_TYPES = {
+    "期刊": "journal",
+    "硕士": "thesis",
+    "博士": "thesis",
+    "会议": "conference",
+    "报纸": "newspaper",
+    "图书": "book",
+    "专著": "book",
+    "专利": "patent",
+    "标准": "standard",
+    "年鉴": "yearbook",
+    "成果": "achievement",
+}
 _PAGE = re.compile(r"(\d+)\s*/\s*(\d+)")
 
 
@@ -58,8 +73,16 @@ def _record(row: Tag) -> Record | None:
         year=year,
         citations=_int(_text(row.select_one(SEARCH["citations"]))),
         downloads=_int(_text(row.select_one(SEARCH["downloads"]))),
+        doc_type=_doc_type(_text(row.select_one(SEARCH["data"]))),
         url=_normalize_url(link.get("href")),
     )
+
+
+def _doc_type(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    token = raw.strip()
+    return _DOC_TYPES.get(token, token.casefold())
 
 
 def _node_text(soup: BeautifulSoup, selector: str) -> str:

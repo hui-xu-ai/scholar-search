@@ -31,7 +31,7 @@ def make_manifest(**overrides: object) -> ChannelManifest:
     return ChannelManifest(**data)  # type: ignore[arg-type]
 
 
-def make_record(title: str = "A paper") -> Record:
+def make_record(title: str = "A paper", doc_type: str | None = "journal") -> Record:
     return Record(
         channel="fake",
         title=title,
@@ -44,6 +44,7 @@ def make_record(title: str = "A paper") -> Record:
         doi="10.0/x",
         abstract="Abstract text",
         keywords=["k1"],
+        doc_type=doc_type,
     )
 
 

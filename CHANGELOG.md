@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.3] - 2026-10-21
+
+### Fixed
+
+- **F01** The result table's `td.data` document type is parsed into `Record.doc_type`;
+  RIS/EndNote now map journal/thesis/conference/newspaper/book/patent/standard/yearbook,
+  and an unknown or missing type renders as `GEN` / `Generic` (plus a RIS note) instead of
+  being silently exported as a journal article. `schemas/record.json` and the export
+  validator include the new field; mixed-type fixture added.
+- **F02** Detail readiness now waits for the article-level selector
+  `.wx-tit h1, #ChDivSummary` instead of a bare `h1` (the login modal), and the inner wait
+  is 8s so it finishes inside the 15s action budget and can still return the final page
+  or risk snapshot.
+
 ## [0.3.2] - 2026-10-21
 
 ### Fixed
@@ -224,4 +238,5 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 

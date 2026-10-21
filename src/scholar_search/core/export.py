@@ -3,6 +3,9 @@
 Only bibliographic text is produced. Nothing is written to disk and no
 download endpoint is ever contacted. Every field is validated and cleaned, so a
 crafted record cannot inject extra tags or records.
+
+The document type comes from the source page. A missing or unknown type is
+rendered as generic and never silently relabelled as a journal article.
 """
 
 from __future__ import annotations
@@ -27,7 +30,31 @@ _STRING_FIELDS = (
 )
 _LIST_FIELDS = ("authors", "keywords")
 _INT_FIELDS = ("citations", "downloads")
-_KNOWN = frozenset({*_STRING_FIELDS, *_LIST_FIELDS, *_INT_FIELDS, "year", "fetched_at"})
+_KNOWN = frozenset({*_STRING_FIELDS, *_LIST_FIELDS, *_INT_FIELDS, "year", "fetched_at", "doc_type"})
+
+_RIS_TYPES = {
+    "journal": "JOUR",
+    "thesis": "THES",
+    "conference": "CPAPER",
+    "newspaper": "NEWS",
+    "book": "BOOK",
+    "patent": "PAT",
+    "standard": "STAND",
+    "yearbook": "BOOK",
+    "achievement": "GEN",
+}
+
+_ENDNOTE_TYPES = {
+    "journal": "Journal Article",
+    "thesis": "Thesis",
+    "conference": "Conference Paper",
+    "newspaper": "Newspaper Article",
+    "book": "Book",
+    "patent": "Patent",
+    "standard": "Generic",
+    "yearbook": "Book",
+    "achievement": "Generic",
+}
 
 
 def _text(value: Any, field: str) -> str:
@@ -81,6 +108,10 @@ def record_from_payload(payload: Mapping[str, Any]) -> Record:
         else:
             numbers[field] = value
 
+    doc_type = payload.get("doc_type")
+    if doc_type is not None and not isinstance(doc_type, str):
+        raise ValueError("doc_type must be a string")
+
     year_text = _year(payload.get("year"))
     fetched = payload.get("fetched_at")
     if isinstance(fetched, str):
@@ -105,6 +136,7 @@ def record_from_payload(payload: Mapping[str, Any]) -> Record:
         downloads=numbers["downloads"],
         url=_text(payload.get("url"), "url") or None,
         fetched_at=fetched,
+        doc_type=_text(doc_type, "doc_type").casefold() or None,
     )
 
 
@@ -112,11 +144,19 @@ def _clean(value: str | None) -> str:
     return _text(value, "field") if value else ""
 
 
+def _type_token(record: Record) -> tuple[str, str]:
+    key = (record.doc_type or "").casefold()
+    return _RIS_TYPES.get(key, "GEN"), _ENDNOTE_TYPES.get(key, "Generic")
+
+
 def to_ris(records: Iterable[Record]) -> str:
     lines: list[str] = []
     for record in records:
         year = _year(record.year)
-        lines.append("TY  - JOUR")
+        ris_type, _ = _type_token(record)
+        lines.append(f"TY  - {ris_type}")
+        if ris_type == "GEN":
+            lines.append("N1  - document type not reported by source")
         lines.append(f"TI  - {_text(record.title, 'title')}")
         for author in record.authors:
             lines.append(f"AU  - {_text(author, 'author')}")
@@ -150,7 +190,8 @@ def to_endnote(records: Iterable[Record]) -> str:
     lines: list[str] = []
     for record in records:
         year = _year(record.year)
-        lines.append("%0 Journal Article")
+        _, endnote_type = _type_token(record)
+        lines.append(f"%0 {endnote_type}")
         lines.append(f"%T {_text(record.title, 'title')}")
         for author in record.authors:
             lines.append(f"%A {_text(author, 'author')}")

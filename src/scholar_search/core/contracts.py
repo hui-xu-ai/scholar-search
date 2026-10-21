@@ -130,6 +130,7 @@ class Record:
     downloads: int | None = None
     url: str | None = None
     fetched_at: datetime | None = None
+    doc_type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -149,6 +150,7 @@ class Record:
             "downloads": self.downloads,
             "url": self.url,
             "fetched_at": self.fetched_at.isoformat() if self.fetched_at else None,
+            "doc_type": self.doc_type,
         }
 
 

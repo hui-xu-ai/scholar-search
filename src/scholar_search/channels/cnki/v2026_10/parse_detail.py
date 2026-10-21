@@ -21,6 +21,18 @@ _YEAR = re.compile(r"(19|20)\d{2}")
 _AFFILIATION_MARK = re.compile(r"[\d,，\s]+$")
 _TIME_KEYS = ("在线公开时间", "网络出版时间", "出版时间", "发表时间")
 
+_DOC_MARKERS = (
+    ("博士学位论文", "thesis"),
+    ("硕士学位论文", "thesis"),
+    ("硕士", "thesis"),
+    ("博士", "thesis"),
+    ("会议", "conference"),
+    ("报纸", "newspaper"),
+    ("图书", "book"),
+    ("专利", "patent"),
+    ("标准", "standard"),
+)
+
 # Print issues put the citation line in ``.top-first``:
 #   力学学报 . 2022 ,54 (01) : 184-195 查看该刊数据库收录来源
 _TOP_LINE = re.compile(
@@ -84,6 +96,14 @@ def _source(soup: BeautifulSoup) -> tuple[str | None, str]:
     return source, value
 
 
+def _document_type(soup: BeautifulSoup) -> str | None:
+    text = soup.get_text(" ", strip=True)
+    for marker, token in _DOC_MARKERS:
+        if marker in text:
+            return token
+    return None
+
+
 def parse(html: str, url: str) -> Record:
     soup = BeautifulSoup(html, "lxml")
 
@@ -107,11 +127,13 @@ def parse(html: str, url: str) -> Record:
         match = _YEAR.search(published)
         year = int(match.group()) if match else None
 
+    doc_type = _document_type(soup)
     source, top_line = _source(soup)
     volume = issue = pages = None
     match = _TOP_LINE.search(top_line)
     if match:
         year = year or int(match.group("year"))
+        doc_type = doc_type or "journal"
         volume = match.group("volume")
         issue = match.group("issue")
         pages = match.group("pages")
@@ -136,4 +158,5 @@ def parse(html: str, url: str) -> Record:
         abstract=_text(soup.select_one(DETAIL["abstract"])),
         keywords=keywords,
         url=url,
+        doc_type=doc_type,
     )

@@ -15,6 +15,7 @@ SEARCH = {
     "date": "td.date",
     "citations": "td.quote",
     "downloads": "td.download",
+    "data": "td.data",
     "checkbox": "input.cbItem",
     "total": ".pagerTitleCell",
     "page_marker": ".countPageMark",
@@ -49,4 +50,4 @@ DETAIL = {
 
 SEARCH_PAGE = "https://kns.cnki.net/kns8s/search"
 SEARCH_READY = ".result-table-list tbody tr"
-DETAIL_READY = "#ChDivSummary, h1"
+DETAIL_READY = ".wx-tit h1, #ChDivSummary"

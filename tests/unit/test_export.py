@@ -24,3 +24,19 @@ def test_newlines_are_flattened() -> None:
     record = make_record()
     record.abstract = "line one\nline two"
     assert "\nline two" not in to_ris([record])
+
+
+def test_missing_type_is_generic_not_journal() -> None:
+    record = make_record(doc_type=None)
+    ris = to_ris([record])
+    endnote = to_endnote([record])
+    assert "TY  - GEN" in ris
+    assert "TY  - JOUR" not in ris
+    assert "document type not reported" in ris
+    assert "%0 Generic" in endnote
+
+
+def test_thesis_is_mapped_to_thesis() -> None:
+    record = make_record("Thesis", doc_type="thesis")
+    assert "TY  - THES" in to_ris([record])
+    assert "%0 Thesis" in to_endnote([record])
