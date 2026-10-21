@@ -248,3 +248,39 @@ def test_detail_plan_wait_stays_below_action_budget() -> None:
     wait = next(action for action in plan.actions if action.verb == "wait_for")
     assert wait.params["timeout_ms"] < wait.timeout_ms
     assert wait.params["selector"] == ".wx-tit h1, #ChDivSummary"
+
+
+def _parse_detail_html(html: str):
+    from scholar_search.channels.cnki.v2026_10 import parse_detail
+
+    return parse_detail.parse(html, "https://kns.cnki.net/kcms2/article/abstract?v=x")
+
+
+def test_journal_not_retyped_by_related_recommendation() -> None:
+    html = PRINT_FIXTURE.read_text(encoding="utf-8")
+    html += "<aside>相关推荐：某博士学位论文</aside>"
+    record = _parse_detail_html(html)
+    assert record.doc_type == "journal"
+    assert record.volume == "54"
+
+
+def test_journal_not_retyped_by_body_conference_word() -> None:
+    html = PRINT_FIXTURE.read_text(encoding="utf-8")
+    html += "<p>本期会议通知：请参会代表按时提交论文。</p>"
+    record = _parse_detail_html(html)
+    assert record.doc_type == "journal"
+
+
+def test_thesis_type_from_metadata_header() -> None:
+    html = """
+    <html><body>
+      <div class="doc-top">硕士学位论文</div>
+      <div class="wx-tit"><h1>某硕士论文题目</h1></div>
+      <div class="top-first">某大学 . 2024</div>
+      <h3 class="author"><a>张三</a></h3>
+      <div id="ChDivSummary">摘要正文</div>
+    </body></html>
+    """
+    record = _parse_detail_html(html)
+    assert record.doc_type == "thesis"
+    assert record.source == "某大学"

@@ -96,11 +96,19 @@ def _source(soup: BeautifulSoup) -> tuple[str | None, str]:
     return source, value
 
 
+# Only the article metadata header may declare a type. The body, abstract and
+# "related recommendations" routinely mention "博士学位论文" or "会议"; scanning
+# the whole page would let unrelated words re-type the current article.
+_META_REGIONS = (".top-first", ".doc-top", ".top-tip", "li.top-space")
+
+
 def _document_type(soup: BeautifulSoup) -> str | None:
-    text = soup.get_text(" ", strip=True)
-    for marker, token in _DOC_MARKERS:
-        if marker in text:
-            return token
+    for selector in _META_REGIONS:
+        for node in soup.select(selector):
+            text = node.get_text(" ", strip=True)
+            for marker, token in _DOC_MARKERS:
+                if marker in text:
+                    return token
     return None
 
 
@@ -133,7 +141,9 @@ def parse(html: str, url: str) -> Record:
     match = _TOP_LINE.search(top_line)
     if match:
         year = year or int(match.group("year"))
-        doc_type = doc_type or "journal"
+        # A concrete volume/issue/pages citation is journal evidence and wins
+        # over any type word found in the metadata header.
+        doc_type = "journal"
         volume = match.group("volume")
         issue = match.group("issue")
         pages = match.group("pages")
@@ -160,3 +170,4 @@ def parse(html: str, url: str) -> Record:
         url=url,
         doc_type=doc_type,
     )
+

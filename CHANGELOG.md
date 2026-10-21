@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.5] - 2026-10-21
+
+### Fixed
+
+- **R034-01** Detail document type is read only from the article metadata header
+  (`.top-first`, `.doc-top`, `.top-tip`, `li.top-space`). Body text, abstracts and
+  related recommendations can no longer re-type the current article, and a concrete
+  volume/issue/pages citation always wins as journal evidence. Fixtures added for
+  "related thesis recommendation" and "conference notice in body".
+
 ## [0.3.4] - 2026-10-21
 
 ### Fixed
@@ -247,6 +257,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 
