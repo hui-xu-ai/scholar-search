@@ -14,7 +14,7 @@ pip install -e ".[dev]"
 发行包安装：
 
 ```bash
-pip install scholar_search-0.3.2-py3-none-any.whl
+pip install scholar_search-<版本>-py3-none-any.whl
 ```
 
 发行包自带浏览器资源。安装后先导出：
@@ -84,6 +84,57 @@ MCP 服务可以启动，但 `search`/`detail` 会返回桥接错误。
 
 `blocked` 表示风控或验证页；24 小时冷却由内核持久化，不要换关键词、换实例或换客户端
 绕过。
+
+## 4.1 国内网络环境下最常见的"假故障"：代理换证
+
+这是接入后最容易被误判成"这个 MCP 不行"的情况，单独用一节说明。
+
+**现象**
+
+```
+search  →  sleep failed: content_not_ready
+search  →  type failed: bridge.timeout
+```
+
+同时去看浏览器：知网标签页停在「隐私错误」页，错误码
+`NET::ERR_CERT_COMMON_NAME_INVALID`，地址是 `kns.cnki.net`。
+
+**根因**
+
+系统代理（Clash、v2ray、部分杀毒软件、公司网关）对 `kns.cnki.net` 做了 TLS 中间人，
+证书域名对不上，浏览器拒绝渲染页面。内容脚本只注入正常页面，错误页上什么都没有，
+于是紧跟 `goto` 的第一个读/写动作就报 `content_not_ready`。
+
+**为什么容易误判**
+
+用 `curl` 或 PowerShell 的 `Invoke-WebRequest` 访问同一个地址会返回 `200`——这些工具不走
+Windows 的系统代理设置。于是"命令行能通、MCP 报错"看起来像 MCP 的 bug，其实是两条完全不同的链路。
+
+**处理**
+
+让 `cnki.net` 直连，任选其一：
+
+- 代理软件里加规则：`DOMAIN-SUFFIX,cnki.net → DIRECT`（推荐，持久且只影响知网）；
+- 或加进 Windows 代理例外：
+
+```powershell
+$key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+$cur = (Get-ItemProperty $key).ProxyOverride
+if ($cur -notmatch 'cnki\.net') {
+    Set-ItemProperty $key -Name ProxyOverride -Value ($cur.TrimEnd(';') + ';*.cnki.net;cnki.net')
+}
+```
+
+改完重启浏览器（或调用 `InternetSetOption(NULL, 39/37, ...)` 广播设置）。
+
+**验证**
+
+在同一个浏览器窗口里打开 <https://kns.cnki.net/kns8s/search>，能看到检索框即恢复。
+再调一次 `status`，`bridge_ready` 应为 `true`。
+
+**不要做的**：不要因为报错就反复重试 `search`——每次重试都在消耗配额，如果页面上恰好是验证页，
+还会触发 24 小时冷却。
+
 
 ## 5. 技能文件
 

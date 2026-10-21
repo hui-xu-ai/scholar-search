@@ -32,7 +32,7 @@ description: 在 Windows 上安装、升级或卸载 scholar-search（Python 包
 ### 1. 选定版本与目录
 
 ```powershell
-$ver  = '0.3.17'                                   # 与用户确认
+$ver  = '<版本>'                                   # 与用户确认；例如 0.3.18
 $root = "$env:LOCALAPPDATA\scholar-search\installations\$ver"
 ```
 
@@ -111,7 +111,7 @@ stdio 配置：
 {
   "mcpServers": {
     "scholar-search": {
-      "command": "C:\\Users\\<用户>\\AppData\\Local\\scholar-search\\installations\\0.3.17\\venv\\Scripts\\python.exe",
+      "command": "C:\\Users\\<用户>\\AppData\\Local\\scholar-search\\installations\\<版本>\\venv\\Scripts\\python.exe",
       "args": ["-m", "scholar_search.cli", "serve", "--transport", "stdio"]
     }
   }
@@ -136,7 +136,7 @@ stdio server 是子进程，不重启不会换代码。
 |---|---|---|
 | `bridge_ready: false`，`host.log` 没有新的 `start` | 扩展没连上宿主：ID 不匹配、宿主没注册、浏览器没重启 | 核对注册表 `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.scholar.search`；重跑 `install.ps1`；重启浏览器 |
 | `install.ps1` 报 `csc.exe not found` | 缺 .NET Framework 编译器 | 让用户装 .NET Framework 4.x，或从别的机器拷 `scholar-host.exe` |
-| `status` 正常但检索报 `content_not_ready` | 浏览器停在错误页（多半是代理换证） | 看窗口标题；把 `cnki.net` 加进代理直连规则，或加进 `ProxyOverride` |
+| `status` 正常但检索报 `content_not_ready` | 浏览器停在错误页。**国内最常见的是代理换证**：代理软件对 `kns.cnki.net` 做 TLS 中间人，Edge 显示「隐私错误 / `NET::ERR_CERT_COMMON_NAME_INVALID`」，错误页上没有内容脚本 | 先看浏览器窗口标题。是错误页就让 `cnki.net` 直连（Clash 里加 `DOMAIN-SUFFIX,cnki.net → DIRECT`，或把 `*.cnki.net;cnki.net` 加进 `ProxyOverride`），重启浏览器；**不要**用 `curl`/`Invoke-WebRequest` 能通就判断站点没问题——它们不走系统代理 |
 | 动作报 `bridge.timeout` | 窗口不在前台导致定时器节流，或标签页状态坏 | 切前台、只留一个窗口一个标签页；仍不行关掉 CNKI 标签页重来 |
 | `blocked` + `cooldown_until` | 触发了风控 | **停止**。让用户人工在浏览器完成验证，再 `scholar-search reset --confirm`。禁止重试 |
 | **全新浏览器环境第一次检索就 `blocked`（`verify_redirect`）** | 新 profile 没有 Cookie 与历史，知网要求人工验证；属预期行为 | 让用户在该窗口完成滑块验证 → `scholar-search reset --confirm` → 再跑一次。**不要**直接 reset 后立刻重试，reset 前必须确认验证已通过 |

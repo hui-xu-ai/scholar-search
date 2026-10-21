@@ -61,8 +61,8 @@ MCP 客户端 ──stdio / HTTP──▶ MCP server
 前置：Windows、Python 3.11+、Edge（或 Chrome）。浏览器侧目前只在 Windows 上提供。
 
 ```powershell
-# 1) 装包（从 Releases 下载 wheel，或本地 uv build 生成）
-pip install .\scholar_search-0.3.17-py3-none-any.whl
+# 1) 装包（从 Releases 下载 wheel，把 <版本> 换成实际版本号，或本地 uv build 生成）
+pip install .\scholar_search-<版本>-py3-none-any.whl
 
 # 2) 导出浏览器侧资源并注册原生宿主
 scholar-search assets --target .\browser
@@ -138,7 +138,7 @@ pwsh .\browser\native-host\install.ps1 -Python <venv>\Scripts\python.exe
 
 ## 状态
 
-当前 v0.3.17。真机验证过的能力（2026-10-21，知网 2026.10 版页面）：
+当前版本 **v0.3.18**（最新 release 见仓库 Releases 页）。真机验证过的能力（2026-10-21，知网 2026.10 版页面）：
 
 | 能力 | 状态 |
 |---|---|
@@ -149,6 +149,55 @@ pwsh .\browser\native-host\install.ps1 -Python <venv>\Scripts\python.exe
 | 排序（时间 / 被引） | 通过，稳定降序 |
 | 单篇详情 | 通过（含摘要、作者单位、卷期页） |
 | 导出 RIS / EndNote | 通过（图书 → `TY  - BOOK`，学位论文 → `THES`） |
+
+## 检索失败了？先看这三条
+
+**这个 MCP 报告"检索失败"时，九成不是 MCP 的问题，而是浏览器或网络环境。** 按下面的顺序排查，
+不要反复重试（重试只会消耗配额，遇到风控还会触发 24 小时冷却）。
+
+### 1. 代理软件对知网做了 TLS 中间人（国内最常见）
+
+**现象**：`search` 返回 `sleep failed: content_not_ready` 或 `type failed: bridge.timeout`；
+去看浏览器，窗口标题是「隐私错误」，页面上写着
+`NET::ERR_CERT_COMMON_NAME_INVALID`，地址是 `kns.cnki.net`。
+
+**原因**：Clash / v2ray / 其他系统代理把 `kns.cnki.net` 的证书换成了自己的，证书名对不上，
+浏览器拒绝加载，页面变成错误页——错误页上没有人注入内容脚本，动作自然全部失败。
+
+**容易误判的地方**：用 PowerShell 的 `Invoke-WebRequest` 或 curl 访问同一个地址会返回 200，
+因为命令行工具不走系统代理设置。于是很容易得出"网站是好的，是 MCP 坏了"的结论——恰恰相反。
+
+**处理**：让 `cnki.net` 直连。任选其一：
+
+```text
+# 在代理软件里加规则（推荐，持久）
+DOMAIN-SUFFIX,cnki.net → DIRECT
+```
+
+```powershell
+# 或者把它加进 Windows 的代理例外，然后重启浏览器
+$key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+$cur = (Get-ItemProperty $key).ProxyOverride
+if ($cur -notmatch 'cnki\.net') {
+    Set-ItemProperty $key -Name ProxyOverride -Value ($cur.TrimEnd(';') + ';*.cnki.net;cnki.net')
+}
+```
+
+**验证**：在那个浏览器窗口里打开 <https://kns.cnki.net/kns8s/search>，能看到检索框就对了。
+
+### 2. 全新浏览器环境被要求人工验证
+
+新 profile 没有 Cookie 与访问历史，第一次检索多半会落到知网的「安全验证」页，工具会正确返回
+`blocked` 并上 24 小时冷却。这不是故障：在那个窗口里人工过验证，然后
+`scholar-search reset --confirm`，再检索一次。详见
+[浏览器环境](docs/browser-setup.md#61-全新环境第一次访问几乎一定会遇到安全验证)。
+
+### 3. 窗口不在前台，定时器被节流
+
+浏览器把后台窗口的定时器按整秒分桶，暂停动作会迟到，表现为 `bridge.timeout` 且
+`duration_ms` 贴着超时值。把知网窗口切到前台、只留一个可见窗口再试。
+
+更多排障（宿主没起来、`goto` 超时、配额用尽等）见[运维手册](docs/operations.md#7-排障)。
 
 ## 目录
 

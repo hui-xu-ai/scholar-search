@@ -66,9 +66,10 @@ ID 不匹配的表现：扩展连不上宿主，`scholar-search status` 一直 `
 # 源码安装
 pwsh .\native-host\install.ps1 -Python .\.venv\Scripts\python.exe
 
-# 部署树
-pwsh "$env:LOCALAPPDATA\scholar-search\installations\0.3.17\browser\native-host\install.ps1" `
-     -Python "$env:LOCALAPPDATA\scholar-search\installations\0.3.17\venv\Scripts\python.exe"
+# 部署树（<版本> 换成实际版本号）
+$ver = '<版本>'
+pwsh "$env:LOCALAPPDATA\scholar-search\installations\$ver\browser\native-host\install.ps1" `
+     -Python "$env:LOCALAPPDATA\scholar-search\installations\$ver\venv\Scripts\python.exe"
 ```
 
 脚本做四件事：
@@ -140,7 +141,7 @@ scholar-search reset --confirm
 想少遇到这一步：先用这个独立环境正常浏览几次知网（打开首页、随便搜一次），
 让站点把该身份当成熟客，再交给自动化。
 
-实测记录（2026-10-21，全新 profile + 0.3.17 部署树）：人工完成验证 → `reset --confirm` 清冷却 →
+实测记录（2026-10-21，全新 profile + 当时的 0.3.17 部署树）：人工完成验证 → `reset --confirm` 清冷却 →
 同一次检索 9.7 s 返回 `total=595`；随后 `detail` 取到 DOI、6 个关键词、476 字摘要，
 `export` 输出 `TY  - JOUR`。整条链路（扩展 → 宿主 → 适配器 → 内核 → 渠道）无需额外配置。
 

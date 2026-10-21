@@ -2,6 +2,20 @@
 
 只记真实发生的故障：现象 → 根因 → 修复 → 是否可借鉴避免。新故障追加在顶部。
 
+## 2026-10-21 代理换证导致 `content_not_ready`，被误判为 MCP 故障
+
+- **现象**：新装环境第一次 `search`，`goto` 成功（约 1.9 s），紧随的 `sleep` 报
+  `content_not_ready`。浏览器窗口标题是「隐私错误」。
+- **根因**：本机开着 Clash Verge（系统代理 `127.0.0.1:7897`，未开 TUN），`kns.cnki.net`
+  被 TLS 中间人换证，Edge 报 `NET::ERR_CERT_COMMON_NAME_INVALID`。错误页上没有内容脚本，
+  所以第一个 DOM 动作必然失败。
+- **误判点**：`Invoke-WebRequest https://kns.cnki.net/kns8s/search` 返回 200——PowerShell
+  不走 WinINET 注册表代理。命令行能通 ≠ 浏览器能通，这一点最容易得出"是 MCP 坏了"的错误结论。
+- **修复**：把 `*.cnki.net;cnki.net` 加进 `ProxyOverride` 并用 `InternetSetOption(39/37)`
+  广播；持久做法是在 Clash 规则里配 `DOMAIN-SUFFIX,cnki.net → DIRECT`。
+- **验证**：同一窗口重新加载知网检索页，`search` 9.7 s 返回 `total=595`。
+- **可借鉴**：是。判断"站点是否可用"必须用**浏览器**的证据（窗口标题、错误码），不能用命令行。
+
 ## 2026-10-21 年度过滤“触发认证”实为误判
 
 - **现象**：点击 `#btnFilterYear` 后页面出现“手机号认证”，结果表消失，检索返回空页（`total: null`），被当作账号验证门并置 24h 冷却。

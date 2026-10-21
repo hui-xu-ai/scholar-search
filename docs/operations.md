@@ -43,8 +43,8 @@ MCP 客户端指向 `installations/<版本>/venv/Scripts/python.exe`，好处是
 ## 3. 从零安装（部署树方式）
 
 ```powershell
-# 1) 解包/安装到新版本目录
-$ver = '0.3.17'
+# 1) 解包/安装到新版本目录（<版本> 换成实际版本号，例如 0.3.18）
+$ver = '<版本>'
 $root = "$env:LOCALAPPDATA\scholar-search\installations\$ver"
 python -m venv "$root\venv"          # 或复制现有 venv 再替换 site-packages
 & "$root\venv\Scripts\python.exe" -m pip install .\dist\scholar_search-$ver-py3-none-any.whl
@@ -62,29 +62,31 @@ $env:SCHOLAR_SEARCH_HOME = "$env:LOCALAPPDATA\scholar-search"
 不想用 `pip`，也可以直接用 wheel 解压覆盖 `site-packages`：
 
 ```powershell
-Expand-Archive .\dist\scholar_search-0.3.17-py3-none-any.whl -DestinationPath .\wheel
+Expand-Archive .\dist\scholar_search-$ver-py3-none-any.whl -DestinationPath .\wheel
 Copy-Item .\wheel\scholar_search "$root\venv\Lib\site-packages\" -Recurse -Force
-Copy-Item .\wheel\scholar_search-0.3.17.dist-info "$root\venv\Lib\site-packages\" -Recurse -Force
+Copy-Item .\wheel\scholar_search-$ver.dist-info "$root\venv\Lib\site-packages\" -Recurse -Force
 ```
 
 ## 4. 升级
 
 ```powershell
 # 1) 用当前版本目录复制出新目录（现在只保留一个安装目录，没有"上一版"可复制）
-Copy-Item "$env:LOCALAPPDATA\scholar-search\installations\0.3.17" `
-          "$env:LOCALAPPDATA\scholar-search\installations\0.3.18" -Recurse
+$old = '<当前版本>'    # 例如 0.3.18
+$new = '<新版本>'      # 例如 0.3.19
+Copy-Item "$env:LOCALAPPDATA\scholar-search\installations\$old" `
+          "$env:LOCALAPPDATA\scholar-search\installations\$new" -Recurse
 
 # 2) 在新目录里换包
-$new = "$env:LOCALAPPDATA\scholar-search\installations\0.3.18"
-Expand-Archive .\dist\scholar_search-0.3.18-py3-none-any.whl -DestinationPath .\wheel318
-Remove-Item "$new\venv\Lib\site-packages\scholar_search*" -Recurse -Force
-Copy-Item .\wheel318\scholar_search* "$new\venv\Lib\site-packages\" -Recurse -Force
+$target = "$env:LOCALAPPDATA\scholar-search\installations\$new"
+Expand-Archive .\dist\scholar_search-$new-py3-none-any.whl -DestinationPath .\wheel-new
+Remove-Item "$target\venv\Lib\site-packages\scholar_search*" -Recurse -Force
+Copy-Item .\wheel-new\scholar_search* "$target\venv\Lib\site-packages\" -Recurse -Force
 
 # 3) 刷新浏览器资源并重注册宿主
-Copy-Item .\native-host\* "$new\browser\native-host\" -Force
-Copy-Item .\extension\* "$new\browser\extension\" -Recurse -Force
-Copy-Item .\schemas\* "$new\browser\schemas\" -Recurse -Force
-pwsh "$new\browser\native-host\install.ps1" -Python "$new\venv\Scripts\python.exe"
+Copy-Item .\native-host\* "$target\browser\native-host\" -Force
+Copy-Item .\extension\* "$target\browser\extension\" -Recurse -Force
+Copy-Item .\schemas\* "$target\browser\schemas\" -Recurse -Force
+pwsh "$target\browser\native-host\install.ps1" -Python "$target\venv\Scripts\python.exe"
 
 # 4) 更新 MCP 客户端里的解释器路径（Codex / DSH bundle / Claude Desktop …）
 #    扩展一般不用重装：只有 extension/ 的 JS 或 manifest.json 变了才重载
