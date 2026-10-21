@@ -164,9 +164,11 @@ uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
 ## 11. 待办
 
 - [x] 提交 `plan_search.py` + 测试改动，发 `0.3.14`（本轮已完成，HEAD `7079948`，tag `v0.3.14`）
-- [ ] 决定是否把安装目录 / Codex `config.toml` / DSH bundle 的 command 路径升级到 0.3.14
-      （会需要一次 DSH 重启或插件重装；仓库无 remote，tag 只在本地）
+- [x] 决定是否升级安装目录 / Codex / DSH bundle —— 本轮**决定暂不部署**：0.3.13 安装目录里的
+      Python 已含同一修复，版本对齐留到下次方便重启 DSH 与宿主时再做（仓库无 remote，tag 只在本地）
+- [ ] 下次部署时按第 9 节清单建 `installations\0.3.14`，再改 Codex `config.toml` 与 DSH bundle
+      的 `command` 路径，最后重启 host / 重装插件
 - [ ] 观察 `type` 超时是否还会出现；若出现，优先查标签页是否被冻结/最小化
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
-- [ ] 若要在真实会话里复验 0.3.14，按第 8 节自测，注意当天配额（写本文件时为 191/300）
+- [ ] 若要在真实会话里复验 0.3.14，按第 8 节自测，注意当天配额（写本文件时为 191/300，余 109）
 
