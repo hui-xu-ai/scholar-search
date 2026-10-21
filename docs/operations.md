@@ -122,6 +122,19 @@ scholar-search serve --transport http --host 127.0.0.1 --port 8765
 scholar-search --version
 ```
 
+### 部署后的一次性真机自检
+
+`scripts/accept-live.py` 是给维护者的冒烟脚本：绕开 MCP 客户端，直接对着活的桥跑
+一次检索（可选再取一条详情 + 导出首行），能同时验证渠道、解析和浏览器链路。
+
+```powershell
+$env:SCHOLAR_SEARCH_HOME = "$env:LOCALAPPDATA\scholar-search"
+& "<安装目录>\venv\Scripts\python.exe" scripts\accept-live.py "IPMC" --limit 3
+& "<安装目录>\venv\Scripts\python.exe" scripts\accept-live.py "IPMC" --limit 3 --detail
+```
+
+它花真配额：一次检索 3 个网络动作，加详情 1 个。跑之前先 `status` 看余量。
+
 ## 7. 排障
 
 按现象查，先看 `audit/audit.jsonl` 最后几条，再看浏览器状态。
