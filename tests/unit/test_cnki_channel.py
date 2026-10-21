@@ -344,3 +344,16 @@ def test_sort_fix_only_when_ascending() -> None:
     assert plan is not None
     assert any(action.verb == "click" for action in plan.actions)
     assert channel.sort_fix(query, desc) is None
+
+
+def test_sort_fix_pause_also_carries_the_reply_margin() -> None:
+    channel = get_channel()
+    query = SearchQuery(text="x", channel="cnki", sort="date")
+    asc = '<ul id="orderList"><li data-sort="PT" class="ASC cur">x</li></ul>'
+
+    plan = channel.sort_fix(query, asc)
+    assert plan is not None
+    sleeps = [action for action in plan.actions if action.verb == "sleep"]
+    assert sleeps
+    for action in sleeps:
+        assert action.timeout_ms - int(action.params["ms"]) >= 1_500

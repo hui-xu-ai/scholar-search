@@ -45,7 +45,7 @@ FILTER_WAIT_MS = 6_000
 WAIT_REPLY_MARGIN_MS = 2_000
 
 
-def _settle(ms: int) -> Action:
+def settle(ms: int) -> Action:
     """A fixed pause with a deadline wide enough for a throttled tab to answer."""
 
     return Action("sleep", {"ms": ms}, timeout_ms=ms + SLEEP_REPLY_MARGIN_MS)
@@ -60,11 +60,11 @@ def _pagination(query: SearchQuery) -> tuple[Action, ...]:
     for index in range(max(0, query.page - 1)):
         if index == 0:
             # Let the freshly rendered grid finish binding before the first turn.
-            actions.append(_settle(800))
+            actions.append(settle(800))
         actions.append(
             Action("click", {"selector": SEARCH["next_page"]}, timeout_ms=CLICK_TIMEOUT_MS)
         )
-        actions.append(_settle(PAGE_TURN_MS))
+        actions.append(settle(PAGE_TURN_MS))
         actions.append(
             Action(
                 "wait_for",
@@ -85,9 +85,9 @@ def _sort(query: SearchQuery) -> tuple[Action, ...]:
         # Reset to relevance first: the grid remembers the direction of the
         # previous sort, and a direct click would toggle it unpredictably.
         Action("click", {"selector": SORT["relevance"]}, timeout_ms=CLICK_TIMEOUT_MS),
-        _settle(900),
+        settle(900),
         Action("click", {"selector": selector}, timeout_ms=CLICK_TIMEOUT_MS),
-        _settle(1_500),
+        settle(1_500),
         Action(
             "wait_for",
             {"selector": SEARCH_READY, "timeout_ms": FILTER_WAIT_MS},
@@ -103,9 +103,9 @@ def _page_size(query: SearchQuery) -> tuple[Action, ...]:
         return ()
     return (
         Action("click", {"selector": SEARCH["page_size_open"]}, timeout_ms=CLICK_TIMEOUT_MS),
-        _settle(400),
+        settle(400),
         Action("click", {"selector": SEARCH["page_size_50"]}, timeout_ms=CLICK_TIMEOUT_MS),
-        _settle(2_500),
+        settle(2_500),
         Action(
             "wait_for",
             {"selector": SEARCH_READY, "timeout_ms": FILTER_WAIT_MS},
@@ -126,7 +126,7 @@ def build(query: SearchQuery) -> Plan:
         expert_url = f"{EXPERT['page']}&t={nonce}"
         head = (
             Action("goto", {"url": expert_url}, timeout_ms=NAV_TIMEOUT_MS),
-            _settle(2_500),
+            settle(2_500),
             Action(
                 "wait_for",
                 {"selector": EXPERT["input"], "timeout_ms": WAIT_TIMEOUT_MS},
@@ -147,7 +147,7 @@ def build(query: SearchQuery) -> Plan:
         search_url = f"{SEARCH_PAGE}?t={nonce}"
         head = (
             Action("goto", {"url": search_url}, timeout_ms=NAV_TIMEOUT_MS),
-            _settle(2_500),
+            settle(2_500),
             Action(
                 "wait_for",
                 {"selector": SEARCH["input"], "timeout_ms": WAIT_TIMEOUT_MS},

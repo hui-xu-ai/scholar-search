@@ -66,7 +66,7 @@ class CnkiChannel:
                     {"selector": selector},
                     timeout_ms=plan_search.CLICK_TIMEOUT_MS,
                 ),
-                Action("sleep", {"ms": 1500}, timeout_ms=2_000),
+                plan_search.settle(1_500),
                 Action(
                     "wait_for",
                     {

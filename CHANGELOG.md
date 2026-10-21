@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.17] - 2026-10-21
+
+### Fixed
+
+- The sort-correction plan's pause now uses the shared reply margin. It still carried the
+  old `sleep 1500 / timeout 2000` pair that 0.3.15 proved too tight for a throttled tab;
+  the plan only runs when the grid comes back ascending, so it had not failed yet.
+
+### Changed
+
+- `settle()` in `channels/cnki/v2026_10/plan_search.py` is public so the sort-correction
+  plan reuses it instead of hand-rolling its own pause budget.
+
+### Docs
+
+- User guide, architecture, upgrade/operations, CNKI-maintenance, browser setup, Zotero
+  (manual import only) and publishing notes; plus a `scholar-install` skill that walks an
+  agent through a fresh install.
+
 ## [0.3.16] - 2026-10-21
 
 ### Fixed
