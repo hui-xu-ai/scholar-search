@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.19] - 2026-10-21
 
 ### Changed
 
@@ -21,6 +21,14 @@ Versioning: [Semantic Versioning](https://semver.org/).
   affiliations and keyword labels are replaced with synthetic placeholders, and author
   mail addresses are removed. Only markup, class names and public bibliographic facts
   (title, journal, volume/issue/pages, DOI) remain.
+
+### Docs
+
+- Version numbers in examples are placeholders now (`<版本>`) instead of a pinned release,
+  so they cannot go stale; only the status section names a real version.
+- The proxy trap (TLS interception making CNKI show a certificate error) is documented in
+  the README, the Codex guide, the install skill and the incident ledger, including the
+  detail that a command-line fetch bypasses the system proxy and therefore proves nothing.
 
 ## [0.3.18] - 2026-10-21
 
