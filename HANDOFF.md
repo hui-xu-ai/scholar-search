@@ -207,10 +207,14 @@ $env:PYTHONDONTWRITEBYTECODE='1'
 2. `uv build`（wheel + sdist），产物放 `dist/`。
 3. 复制上一版 venv 到 `installations\<新版>`，替换 `site-packages\scholar_search`
    与 `*.dist-info`，复制 `browser\native-host|extension|schemas`。
+   **2026-10-21 之后只有一个安装目录（0.3.16）**，没有"上一版"可复制；要升级就先
+   `Copy-Item installations\0.3.16 installations\<新版> -Recurse`（当前版本复制给新版，
+   再在新版里换包），不要动正在用的目录。
 4. 跑 `browser\native-host\install.ps1 -Python <新版>\venv\Scripts\python.exe`。
-5. 更新 Codex `config.toml` 的 venv 路径。
+5. 更新 Codex `config.toml`、DSH bundle 的 `cordis.patch.yml`/`package.json` 里的路径与版本。
 6. 停掉 `scholar-host.exe` 与 `native-host\main.py`，等待扩展重连。
 7. 不要复制旧 `Scripts\scholar-search.exe`；用 `python -m` 或重建 `.cmd`。
+8. 重启 DSH，让 MCP 服务进程换到新版（stdio 进程导入过模块，不重启不换代码）。
 
 ## 10. 测试
 
@@ -256,9 +260,13 @@ uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
       部署后走安装目录真机复验通过（见第 2、3 节）。
 - [x] 重启 DSH，MCP 服务进程（`installations\0.3.16\venv\Scripts\python.exe`）跑上 0.3.16；
       官方 `mcp__scholar-search__*` 复核：图书记录 `doc_type` 为 `book`，导出 `TY  - BOOK`。
+- [x] 旧安装目录已清理：只留 `installations\0.3.16`，从 689 MB 降到 49 MB（释放 640 MB）。
+      清理前已确认 Codex `config.toml`、bundle `cordis.patch.yml`、HKCU 注册都只指 0.3.16，
+      且没有进程占用旧目录。清理后 `status` 与宿主链路正常。
 - [ ] 观察 `sleep` / `type` 超时是否还会出现；出现就先看 `duration_ms` 是否贴超时、
       再确认 CNKI 窗口在前台且只有一个可见窗口
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
 - [ ] 复验时按第 8 节自测，注意配额（写本文件时 229/300，余 71；一次检索 = 3）
-- [ ] 旧安装目录可择日清理：`installations\0.3.2` … `0.3.15` 都已无用（0.3.16 是当前版本）
+- [ ] 若日后再次部署：现在没有"上一版目录可复制"，需要从 wheel 新建 venv，
+      或先保留一份干净 venv 再升级（第 9 节按旧目录复制那一步要相应调整）
 
