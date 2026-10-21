@@ -41,6 +41,8 @@ _DOC_TYPES = {
     "成果": "achievement",
 }
 _TYPE_LABELS = frozenset({"文献类型", "文献类别", "资源类型", "类型"})
+# The journal header links to the journal database page; theses/conferences do not.
+_JOURNAL_HINT = "查看该刊"
 
 # Print issues put the citation line in ``.top-first``:
 #   力学学报 . 2022 ,54 (01) : 184-195 查看该刊数据库收录来源
@@ -173,6 +175,10 @@ def parse(html: str, url: str) -> Record:
         volume = match.group("volume")
         issue = match.group("issue")
         pages = match.group("pages")
+    elif _JOURNAL_HINT in top_line and doc_type is None:
+        # Online-first journal articles carry no volume/issue; this link text is
+        # article-level structural evidence, not body text.
+        doc_type = "journal"
 
     keywords = [
         link.get_text(strip=True).strip(";；,，、")

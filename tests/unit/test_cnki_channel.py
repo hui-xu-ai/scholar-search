@@ -284,3 +284,10 @@ def test_thesis_type_from_metadata_header() -> None:
     record = _parse_detail_html(html)
     assert record.doc_type == "thesis"
     assert record.source == "某大学"
+
+
+def test_online_first_detail_is_journal_from_header_link() -> None:
+    html = DETAIL_FIXTURE.read_text(encoding="utf-8")
+    record = _parse_detail_html(html)
+    assert record.doc_type == "journal"
+    assert record.volume is None

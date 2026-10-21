@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.7] - 2026-10-21
+
+### Fixed
+
+- **Live detail type** Online-first journal detail pages have no volume/issue, so the
+  previous metadata-only rule left `doc_type` empty and exported `GEN`. The journal
+  header link text (`查看该刊数据库收录来源`) is now used as article-level structural
+  evidence, so real online-first details export `JOUR`. Verified live on a CNKI
+  journal article (abstract, DOI, keywords, 0 risk).
+
 ## [0.3.6] - 2026-10-21
 
 ### Fixed
@@ -272,6 +282,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 
