@@ -12,24 +12,30 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | `D:\Python\DeepSeek\DateWork\scholar-search` |
-| 分支 / HEAD | `main` / `7079948` |
-| 最新 tag | `v0.3.14` |
-| 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13` |
+| 分支 / HEAD | `main` / `69534c7` |
+| 最新 tag | `v0.3.15` |
+| 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13`（**不含 0.3.15**） |
 | Codex 配置 | `C:\Users\xuhui\.codex\config.toml` → 0.3.13 venv |
-| 扩展 | 0.3.11 加载的 JS；0.3.12–0.3.14 只有 Python 改动，**无需重载** |
+| 扩展 | 0.3.11 加载的 JS；0.3.12–0.3.15 只有 Python 改动，**无需重载** |
 
-### 0.3.14 已提交（本轮完成）
+### 0.3.14 → 0.3.15 这一轮做了什么
 
-- `src/scholar_search/channels/cnki/v2026_10/plan_search.py` —— `goto` 后加 `sleep 2500`
-  （等 CNKI 首屏后的二次跳转完成，避免内容脚本被替换导致 `type` 超时）。
-- `tests/unit/test_cnki_channel.py` —— 计划动作序列断言加入 `sleep`，索引后移。
-- 版本号、`CHANGELOG.md`、`NOTICE` 同步到 0.3.14；`dist/` 有
-  `scholar_search-0.3.14-py3-none-any.whl` 与 `.tar.gz`（已核对 wheel 内含新的
-  `sleep` 动作）。
+- **0.3.14**（`7079948`）：`goto` 后加 `sleep 2500`，等 CNKI 首屏后的二次跳转，
+  避免内容脚本被替换导致 `type` 超时。
+- **0.3.15**（`69534c7`）：真机一跑就发现 0.3.14 的 `sleep` 自己会超时——
+  实测 2500ms 的暂停在 **3004ms** 才回包，而超时预算正好 3000ms。
+  根因是**浏览器定时器对齐**：CNKI 窗口不是前台窗口时，定时器被按整秒分桶，
+  任何暂停都可能晚到近 1 秒。
+  现在所有暂停走 `_settle(ms)`，超时 = 暂停时长 + 2s 余量。
+  多出来的余量从别处腾：`read_html` 6→4s、结果栅格/筛选等待 8→6s、
+  输入框/结果等待 12→10s，最坏计划仍 116.6s < 120s 上限。
+  **ADR 0005 的限额一个都没动，动词集和计划形状也没变。**
+- 两个版本都在 `dist/` 有 whl + sdist，并核对过 wheel 内容。
 - 仓库**没有配置 remote**，tag 只在本地，release workflow 不会触发。
 
-同一份代码此前已热更新到 0.3.13 安装目录，所以线上行为已含该修复；0.3.14 只是把它
-落进版本库与产物。**是否把安装目录、Codex 配置、DSH bundle 升到 0.3.14 仍待决定。**
+**注意：线上还跑着 0.3.13 的代码，没有 0.3.15 的余量修复。** DSH 的 MCP 服务是
+stdio 进程，模块在启动时已导入，改文件不会热生效——要重启 MCP 服务或部署新版本，
+否则 `sleep` 在窗口非前台时仍会 `bridge.timeout`。
 
 
 ## 3. 已真机验证（2026-10-21）
@@ -41,6 +47,12 @@
 - 排序方向反馈纠正：读 `#orderList` 的 `cur` 类，ASC 才补一次点击
 - 风控：无验证码、无 403、无冷却
 - 通过 DSH MCP 的真实调用：`search` 成功（total 150）
+- **0.3.15 修复后真机复验**：连续两次，均无冷却。
+  `IPMC`、`limit=5` → 10.0 秒，`total=595`，5 条 journal 记录；
+  `碳纳米管`、`limit=5` → 10.7 秒，`total=36375`。
+  一次检索 = 3 个网络动作（配额 193→199）。
+  审计里那次 `sleep` 耗时 2504ms（窗口在前台），而失败那次是 3004ms（窗口不在前台）——
+  正是定时器按整秒分桶的证据。运行方式见第 8 节。
 
 ## 4. 关键路径
 
@@ -64,7 +76,9 @@
 
 ## 6. 当前配额与限制
 
-- 日期 `2026-10-21`，已用 191 / 300，剩余 **109**，无冷却。
+- 日期 `2026-10-21`，已用 199 / 300，剩余 **101**，无冷却。
+- 一次 `search` 记 **3** 个网络动作（`goto` + `type` + `click`）；`sleep`/`wait_for`/
+  `read_html` 等读动词不占配额。
 - 每日 300 个网络动作（ADR 0005）。
 - 3000ms 下限 + 0–1.2s 随机抖动（约 10% 额外 2–4s），并发 1。
 - `page` 1–3，`limit` 1–50，单计划 ≤40 动作 / 120s。
@@ -73,15 +87,18 @@
 
 ## 7. 已知问题与排查顺序
 
-### `type failed: bridge.timeout`（已缓解）
+### `type` / `sleep` 在暂停动作上 `bridge.timeout`（0.3.15 已修）
 
-现象：`goto`、`wait_for` 成功，`type` 3 秒超时。
-原因：CNKI 首屏完成后又跳转一次，旧内容脚本被替换，后台重试耗尽且未回包。
-已加 `goto` 后 2.5s 稳定等待。若仍偶发：
+现象：`goto` 成功，紧跟的 `sleep` 用满超时才报错（实测 2500ms 的暂停 3004ms 回包，
+配 3000ms 预算）；`type` 也可能同样报错。
+原因：**定时器对齐**。CNKI 窗口不是前台窗口时，浏览器把定时器按整秒分桶，暂停最多
+晚到近 1 秒。0.3.15 起所有暂停的预算 = 暂停时长 + 2s。
+如果 0.3.15 之后还出现：
 
-1. 看 `audit.jsonl` 确认失败动作；
-2. 确认 Edge 只有一个可见窗口、一个 CNKI 标签页，且窗口未最小化；
-3. 让用户开一次 CNKI 搜索页再重试；
+1. 看 `audit.jsonl` 里 `duration_ms` 是不是贴着超时值；贴着就是又被节流了；
+2. 把 CNKI 窗口切到前台（`WScript.Shell.AppActivate(<edge 进程 id>)` 即可），
+   goto 走的是 `lastFocusedWindow` 的活动标签页；
+3. Edge 只留一个可见窗口、一个 CNKI 标签页，窗口别最小化；
 4. 不要连续重试，不要换 IP，不要延时重试。
 
 ### 复制 venv 后 `scholar-search.exe` 指向旧版本
@@ -94,25 +111,35 @@
 
 长时间复用同一个 CNKI 标签页会出现 `goto` 15s 超时。关闭所有 CNKI 标签页或重启 Edge 后恢复。不是代码问题。
 
-## 8. 沙箱里自测（不需要用户点浏览器）
+## 8. 真机自测（会消耗配额）
 
-1. 复制状态到工作区 HOME：
+最省事的方式：用**已安装解释器 + 仓库源码**，直接对着活的宿主桥跑，不用经过 MCP
+服务，所以能立刻验证工作区代码。脚本模板在
+`D:\Python\DeepSeek\DateWork\.tmp-low\accept-live.py`（副本可自己重写：
 
-```powershell
-$lh='D:\Python\DeepSeek\DateWork\tmp\live-home'
-Copy-Item 'C:\Users\xuhui\AppData\Local\scholar-search\host\bridge.json' "$lh\host\bridge.json" -Force
-Remove-Item "$lh\cache" -Recurse -Force -ErrorAction SilentlyContinue
+```python
+from scholar_search.bootstrap import build_service
+from scholar_search.core.contracts import SearchQuery
+
+service = build_service()
+print(service.status())
+page = service.search(SearchQuery(text="IPMC", channel="cnki", limit=5))
+print(page.total, page.page, len(page.records))
 ```
 
-2. 用已安装解释器 + 仓库源码跑：
+运行：
 
 ```powershell
-$env:SCHOLAR_SEARCH_HOME=$lh
+$env:SCHOLAR_SEARCH_HOME='C:\Users\xuhui\AppData\Local\scholar-search'   # 直接用真 HOME，配额/审计不分叉
 $env:PYTHONPATH='D:\Python\DeepSeek\DateWork\scholar-search\src'
-& 'C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13\venv\Scripts\python.exe' -B tmp\accept-live.py
+$env:PYTHONDONTWRITEBYTECODE='1'
+& 'C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13\venv\Scripts\python.exe' -B accept-live.py
 ```
 
-3. 跑完把 `$lh\state\quota.json` 复制回 AppData，避免配额分叉。
+注意：
+- 一次 `search` 花 3 个网络动作；跑之前先看 `quota.json`。
+- 控制台是 GBK，中文标题会乱码显示；要核对内容就写 UTF-8 文件再看。
+- 跑之前把 CNKI 的 Edge 窗口切到前台，并且只留一个可见窗口。
 
 ## 9. 构建与部署清单
 
@@ -163,12 +190,15 @@ uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
 
 ## 11. 待办
 
-- [x] 提交 `plan_search.py` + 测试改动，发 `0.3.14`（本轮已完成，HEAD `7079948`，tag `v0.3.14`）
-- [x] 决定是否升级安装目录 / Codex / DSH bundle —— 本轮**决定暂不部署**：0.3.13 安装目录里的
-      Python 已含同一修复，版本对齐留到下次方便重启 DSH 与宿主时再做（仓库无 remote，tag 只在本地）
-- [ ] 下次部署时按第 9 节清单建 `installations\0.3.14`，再改 Codex `config.toml` 与 DSH bundle
-      的 `command` 路径，最后重启 host / 重装插件
-- [ ] 观察 `type` 超时是否还会出现；若出现，优先查标签页是否被冻结/最小化
+- [x] 提交 `plan_search.py` + 测试改动，发 `0.3.14`（`7079948`，tag `v0.3.14`）
+- [x] 真机复验 0.3.14 —— **一跑就发现 `sleep` 自己超时**，遂发 `0.3.15`（`69534c7`）：
+      暂停动作加 2s 回包余量，并从读/等待超时里腾出预算。真机已通过（见第 3 节）。
+- [ ] **升级线上到 0.3.15**：现在安装目录、Codex、DSH bundle 都还指 0.3.13，
+      跑的是没有余量修复的代码，窗口不在前台时仍会 `bridge.timeout`。
+      按第 9 节清单建 `installations\0.3.15`，改 Codex `config.toml` 与 DSH bundle 的
+      `command` 路径，然后重启 host / 重装插件（DSH 的 MCP 是 stdio 进程，不重启不会换代码）。
+- [ ] 观察 `sleep` / `type` 超时是否还会出现；出现就先看 `duration_ms` 是否贴超时、
+      再确认 CNKI 窗口在前台且只有一个可见窗口
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
-- [ ] 若要在真实会话里复验 0.3.14，按第 8 节自测，注意当天配额（写本文件时为 191/300，余 109）
+- [ ] 复验时按第 8 节自测，注意配额（写本文件时 199/300，余 101；一次检索 = 3）
 
