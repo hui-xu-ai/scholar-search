@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import sys
 import threading
 import time
 from collections.abc import Iterator
@@ -35,18 +36,20 @@ def _ensure_byte(handle: IO[bytes]) -> None:
 
 
 def _try_lock(handle: IO[bytes]) -> None:
-    if os.name == "nt":
+    # ``sys.platform`` rather than ``os.name``: mypy narrows on the former, so
+    # each CI platform analyses only its own branch.
+    if sys.platform == "win32":
         import msvcrt
 
         msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
     else:
         import fcntl
 
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined]
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
 
 
 def _unlock(handle: IO[bytes]) -> None:
-    if os.name == "nt":
+    if sys.platform == "win32":
         import msvcrt
 
         handle.seek(0)
@@ -54,7 +57,7 @@ def _unlock(handle: IO[bytes]) -> None:
     else:
         import fcntl
 
-        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 @contextmanager

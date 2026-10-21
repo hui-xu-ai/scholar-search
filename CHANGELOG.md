@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.18] - 2026-10-21
+
+### Fixed
+
+- `core/locking.py` branches on `sys.platform` instead of `os.name`. mypy only narrows
+  the former, so on Linux the Windows branch was analysed too: `msvcrt` came back
+  untyped and the `fcntl` ignores were reported as unused. That made the
+  `ubuntu-latest` jobs fail at the type-check step while Windows passed. Verified with
+  both `mypy src` and `mypy --platform linux src`.
+
 ## [0.3.17] - 2026-10-21
 
 ### Fixed
