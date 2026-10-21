@@ -12,11 +12,13 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | `D:\Python\DeepSeek\DateWork\scholar-search` |
-| 分支 / HEAD | `main` / `69534c7` |
+| 分支 / HEAD | `main` / `c5159c4`（交接文档提交之前；以 `git log -1` 为准） |
 | 最新 tag | `v0.3.15` |
-| 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13`（**不含 0.3.15**） |
-| Codex 配置 | `C:\Users\xuhui\.codex\config.toml` → 0.3.13 venv |
+| 已安装 | `C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.15`（已部署并真机验证） |
+| Codex 配置 | `C:\Users\xuhui\.codex\config.toml` → 0.3.15 venv |
+| DSH bundle | `scholar-search-dsh-bundle` 的 `command` 与 `version` 已改 0.3.15 |
 | 扩展 | 0.3.11 加载的 JS；0.3.12–0.3.15 只有 Python 改动，**无需重载** |
+| 原生宿主 | HKCU 注册已指向 0.3.15 的 manifest，进程已从 0.3.15 目录重启 |
 
 ### 0.3.14 → 0.3.15 这一轮做了什么
 
@@ -33,9 +35,26 @@
 - 两个版本都在 `dist/` 有 whl + sdist，并核对过 wheel 内容。
 - 仓库**没有配置 remote**，tag 只在本地，release workflow 不会触发。
 
-**注意：线上还跑着 0.3.13 的代码，没有 0.3.15 的余量修复。** DSH 的 MCP 服务是
-stdio 进程，模块在启动时已导入，改文件不会热生效——要重启 MCP 服务或部署新版本，
-否则 `sleep` 在窗口非前台时仍会 `bridge.timeout`。
+### 0.3.15 部署（已完成）
+
+按第 9 节清单执行，0.3.13 目录保留未动：
+
+1. `Copy-Item installations\0.3.13 installations\0.3.15 -Recurse`（49 MB）。
+2. 用 `dist\scholar_search-0.3.15-py3-none-any.whl` 替换 `venv\Lib\site-packages`
+   下的 `scholar_search` 与 `*.dist-info`。
+3. 从仓库覆盖 `browser\native-host`（main.py / launcher.cs / install.ps1 / README.md）、
+   `browser\extension`、`browser\schemas`。
+4. `browser\native-host\install.ps1 -Python ...0.3.15\venv\Scripts\python.exe` ——
+   重写 manifest、`python-path.txt` 与 HKCU 注册（Edge 和 Chrome 都指向 0.3.15）。
+5. Codex `config.toml` 的 `mcp_servers.scholar-search.command` 改到 0.3.15。
+6. DSH bundle 的 `cordis.patch.yml` 的 `command` 与 `package.json` 的 `version` 改 0.3.15。
+7. 杀掉旧的 `scholar-host.exe` 与 `main.py`（pid 3684 / 32948），扩展自动重连，
+   宿主从 0.3.15 目录起来（`host.log` 里 `cwd=...0.3.15\browser\native-host`）。
+8. `Scripts\scholar-search.cmd` 仍是一行 `python.exe -m scholar_search.cli %*`，没有复制旧 exe。
+
+**还有一处没生效**：DSH 当前这个会话的 MCP 服务进程是部署前启动的，模块已经导入，
+仍跑 0.3.13 的计划代码（`mcp__scholar-search__status` 正常，但 `sleep` 没有余量）。
+**重启 DSH 之后才会用 0.3.15。**
 
 
 ## 3. 已真机验证（2026-10-21）
@@ -53,6 +72,9 @@ stdio 进程，模块在启动时已导入，改文件不会热生效——要�
   一次检索 = 3 个网络动作（配额 193→199）。
   审计里那次 `sleep` 耗时 2504ms（窗口在前台），而失败那次是 3004ms（窗口不在前台）——
   正是定时器按整秒分桶的证据。运行方式见第 8 节。
+- **部署后复验（走安装目录，不用仓库源码）**：`石墨烯`、`limit=5` → 9.6 秒，
+  `total=111875`，5 条记录，配额 101→98。用的是
+  `installations\0.3.15\venv\Scripts\python.exe`，证明部署树本身可用。
 
 ## 4. 关键路径
 
@@ -76,7 +98,7 @@ stdio 进程，模块在启动时已导入，改文件不会热生效——要�
 
 ## 6. 当前配额与限制
 
-- 日期 `2026-10-21`，已用 199 / 300，剩余 **101**，无冷却。
+- 日期 `2026-10-21`，已用 202 / 300，剩余 **98**，无冷却。
 - 一次 `search` 记 **3** 个网络动作（`goto` + `type` + `click`）；`sleep`/`wait_for`/
   `read_html` 等读动词不占配额。
 - 每日 300 个网络动作（ADR 0005）。
@@ -133,7 +155,7 @@ print(page.total, page.page, len(page.records))
 $env:SCHOLAR_SEARCH_HOME='C:\Users\xuhui\AppData\Local\scholar-search'   # 直接用真 HOME，配额/审计不分叉
 $env:PYTHONPATH='D:\Python\DeepSeek\DateWork\scholar-search\src'
 $env:PYTHONDONTWRITEBYTECODE='1'
-& 'C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.13\venv\Scripts\python.exe' -B accept-live.py
+& 'C:\Users\xuhui\AppData\Local\scholar-search\installations\0.3.15\venv\Scripts\python.exe' -B accept-live.py
 ```
 
 注意：
@@ -193,12 +215,13 @@ uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
 - [x] 提交 `plan_search.py` + 测试改动，发 `0.3.14`（`7079948`，tag `v0.3.14`）
 - [x] 真机复验 0.3.14 —— **一跑就发现 `sleep` 自己超时**，遂发 `0.3.15`（`69534c7`）：
       暂停动作加 2s 回包余量，并从读/等待超时里腾出预算。真机已通过（见第 3 节）。
-- [ ] **升级线上到 0.3.15**：现在安装目录、Codex、DSH bundle 都还指 0.3.13，
-      跑的是没有余量修复的代码，窗口不在前台时仍会 `bridge.timeout`。
-      按第 9 节清单建 `installations\0.3.15`，改 Codex `config.toml` 与 DSH bundle 的
-      `command` 路径，然后重启 host / 重装插件（DSH 的 MCP 是 stdio 进程，不重启不会换代码）。
+- [x] 升级线上到 0.3.15：安装目录、Codex、DSH bundle、HKCU 注册、宿主进程全部换好，
+      部署后走安装目录真机复验通过（见第 2、3 节）。
+- [ ] **重启 DSH**，让 MCP 服务进程换到 0.3.15；重启后 `mcp__scholar-search__search`
+      才带暂停余量。重启前调用的仍是没有余量的旧代码。
 - [ ] 观察 `sleep` / `type` 超时是否还会出现；出现就先看 `duration_ms` 是否贴超时、
       再确认 CNKI 窗口在前台且只有一个可见窗口
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
-- [ ] 复验时按第 8 节自测，注意配额（写本文件时 199/300，余 101；一次检索 = 3）
+- [ ] 复验时按第 8 节自测，注意配额（写本文件时 202/300，余 98；一次检索 = 3）
+- [ ] 0.3.13 与更早的安装目录已无用，可择日清理（`installations\0.3.2` … `0.3.13`）
 
