@@ -28,6 +28,19 @@ def load_token() -> str:
     return token
 
 
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def _hostname(header: str) -> str:
+    value = header.strip()
+    if value.startswith("["):
+        end = value.find("]")
+        return value[1:end] if end > 0 else ""
+    if value.count(":") == 1:
+        return value.split(":", 1)[0]
+    return value
+
+
 class TokenMiddleware:
     def __init__(self, app: ASGIApp, token: str) -> None:
         self.app = app
@@ -39,8 +52,7 @@ class TokenMiddleware:
             return
 
         headers = {key.decode().lower(): value.decode() for key, value in scope["headers"]}
-        host = headers.get("host", "")
-        if not (host.startswith("127.0.0.1") or host.startswith("localhost")):
+        if _hostname(headers.get("host", "")).casefold() not in LOOPBACK_HOSTS:
             await self._deny(send, 403)
             return
 

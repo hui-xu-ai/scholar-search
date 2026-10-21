@@ -1,11 +1,13 @@
 """Plan validation and execution.
 
 Sequencing lives here, not in adapters: this is the only place that can stop a
-plan between two actions when a risk signal appears.
+plan between two actions when a risk signal appears. Plans are serialized
+process-wide, because the browser is a single shared resource.
 """
 
 from __future__ import annotations
 
+import threading
 import time
 from dataclasses import dataclass
 
@@ -13,6 +15,8 @@ from .audit import AuditLog
 from .contracts import ActionOutcome, BrowserAdapter, ChannelManifest, Plan
 from .policy import NETWORK_VERBS, PolicyEngine
 from .risk import RiskGuard
+
+_EXECUTION_LOCK = threading.Lock()
 
 
 @dataclass(slots=True)
@@ -23,8 +27,15 @@ class Planner:
     audit: AuditLog
 
     def run(self, plan: Plan, manifest: ChannelManifest) -> tuple[ActionOutcome, ...]:
+        with _EXECUTION_LOCK:
+            return self._run_locked(plan, manifest)
+
+    def _run_locked(self, plan: Plan, manifest: ChannelManifest) -> tuple[ActionOutcome, ...]:
         self.risk.ensure_ready()
         self.policy.validate_plan(plan, manifest)
+
+        if hasattr(self.adapter, "domains"):
+            self.adapter.domains = manifest.domains
 
         outcomes: list[ActionOutcome] = []
         for action in plan.actions:
@@ -45,6 +56,7 @@ class Planner:
                 verb=action.verb,
                 ok=outcome.ok,
                 duration_ms=elapsed_ms,
+                error=outcome.error,
             )
             outcomes.append(outcome)
 
@@ -57,5 +69,9 @@ class Planner:
                     cooldown_until=blocked.cooldown_until,
                 )
                 raise blocked
+
+            if not outcome.ok:
+                # Stop here: dependent actions must not run on a failed step.
+                break
 
         return tuple(outcomes)

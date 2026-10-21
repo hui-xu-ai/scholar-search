@@ -20,7 +20,6 @@ import time
 from pathlib import Path
 
 from scholar_search.adapters.bridge.host import BridgeHost
-from scholar_search.adapters.bridge.policy import DEFAULT_DOMAINS
 from scholar_search.core.config import ensure_host_runtime, host_runtime_dir
 
 HOST_NAME = "com.scholar.search"
@@ -80,20 +79,33 @@ def serve_client(
 
             action = request.get("action")
             params = request.get("params") or {}
-            timeout_ms = int(request.get("timeout_ms") or 15_000)
+            timeout_raw = request.get("timeout_ms", 15_000)
+            try:
+                timeout_ms = int(timeout_raw)
+            except (TypeError, ValueError):
+                connection.sendall(b'{"ok":false,"error":"policy.params"}\n')
+                continue
+            if not 0 < timeout_ms <= 15_000:
+                connection.sendall(b'{"ok":false,"error":"policy.deadline"}\n')
+                continue
             if not isinstance(action, str) or not isinstance(params, dict):
                 connection.sendall(b'{"ok":false,"error":"policy.params"}\n')
                 continue
+
+            requested_domains = request.get("domains")
+            if isinstance(requested_domains, list):
+                effective = tuple(str(item) for item in requested_domains if item)
+            else:
+                effective = domains
 
             reply = host.request(
                 action,
                 params,
                 timeout_s=timeout_ms / 1000,
-                domains=domains,
+                domains=effective or None,
+                request_id=str(request.get("id") or "") or None,
             )
-            connection.sendall(
-                (json.dumps(reply, ensure_ascii=False) + "\n").encode("utf-8")
-            )
+            connection.sendall((json.dumps(reply, ensure_ascii=False) + "\n").encode("utf-8"))
     except OSError:
         pass
     finally:
@@ -184,8 +196,9 @@ def main() -> int:
         _log(f"start pid={os.getpid()} cwd={os.getcwd()}")
         host = BridgeHost()
         token = secrets.token_urlsafe(24)
-        domains = tuple(os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",")) or DEFAULT_DOMAINS
-        domains = tuple(domain for domain in domains if domain)
+        domains = tuple(
+            item for item in os.environ.get("SCHOLAR_SEARCH_DOMAINS", "").split(",") if item
+        )
 
         previous = read_endpoint()
         server, port = start_tcp_server(host, token, domains)

@@ -33,6 +33,15 @@ class PolicyError(ScholarSearchError):
         self.rule = rule
 
 
+class ActionError(ScholarSearchError):
+    """A browser action failed; dependent actions must not run."""
+
+    def __init__(self, message: str, *, verb: str, code: str) -> None:
+        super().__init__(message)
+        self.verb = verb
+        self.code = code
+
+
 class RiskBlocked(ScholarSearchError):
     """A risk signal was detected; execution stops immediately."""
 

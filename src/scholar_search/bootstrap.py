@@ -37,7 +37,7 @@ def build_service() -> ScholarService:
             "cooldown_until": until.isoformat() if until else None,
             "quota_remaining": policy.remaining_today,
             "bridge_endpoint": str(endpoint),
-            "bridge_ready": endpoint.exists(),
+            "bridge_ready": BridgeAdapter.probe(),
         }
 
     return ScholarService(
@@ -47,4 +47,5 @@ def build_service() -> ScholarService:
         policy=policy,
         cache=cache,
         status_provider=status,
+        risk=risk,
     )

@@ -48,6 +48,21 @@ if (-not (Test-Path $launcher)) {
 }
 Set-Content -Path $pythonPathFile -Value $Python -Encoding ascii
 
+# The browser launches the host at low integrity. Keep the runtime tree inside
+# the documented HOME boundary and label it so that host can still write.
+$runtimeHome = if ($env:SCHOLAR_SEARCH_HOME) {
+  $env:SCHOLAR_SEARCH_HOME
+} else {
+  Join-Path $env:LOCALAPPDATA "scholar-search"
+}
+$runtime = Join-Path $runtimeHome "host"
+New-Item -ItemType Directory -Path $runtime -Force | Out-Null
+try {
+  & icacls $runtime /setintegritylevel "(OI)(CI)L" | Out-Null
+} catch {
+  Write-Warning "could not lower integrity on $runtime; the host may not be able to write there"
+}
+
 $manifest = @{
   name            = $hostName
   description     = "scholar-search native bridge"

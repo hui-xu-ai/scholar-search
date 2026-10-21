@@ -31,9 +31,7 @@ def build_service(
     tmp_path: Path, channel: FakeChannel, scripts: list[list[dict[str, object]]]
 ) -> ScholarService:
     clock = FakeClock()
-    policy = PolicyEngine(
-        clock=clock.time, sleeper=clock.sleep, state_path=tmp_path / "quota.json"
-    )
+    policy = PolicyEngine(clock=clock.time, sleeper=clock.sleep, state_path=tmp_path / "quota.json")
     risk = RiskGuard(state_path=tmp_path / "cooldown.json")
     audit = AuditLog(path=tmp_path / "audit.jsonl")
 

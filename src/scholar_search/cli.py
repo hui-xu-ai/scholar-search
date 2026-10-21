@@ -9,6 +9,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from . import __version__
 from .core import config
@@ -32,6 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     reset = sub.add_parser("reset", help="clear the risk cooldown after manual verification")
     reset.add_argument("--confirm", action="store_true", help="required to actually clear")
 
+    assets = sub.add_parser("assets", help="copy bundled browser assets to a directory")
+    assets.add_argument("--target", required=True, help="destination directory")
+
     return parser
 
 
@@ -50,6 +54,18 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         RiskGuard().clear()
         print("risk cooldown cleared", file=sys.stderr)
+        return 0
+
+    if args.command == "assets":
+        from .assets import copy_assets
+
+        try:
+            copied = copy_assets(Path(args.target))
+        except (OSError, FileNotFoundError) as error:
+            print(f"cannot copy assets: {error}", file=sys.stderr)
+            return 1
+        for path in copied:
+            print(path)
         return 0
 
     config.ensure_home()

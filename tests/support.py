@@ -88,9 +88,7 @@ class FakeChannel:
             ),
         )
 
-    def parse_journal(
-        self, html: str, *, issn: str, year: int, issue: str
-    ) -> SearchPage:
+    def parse_journal(self, html: str, *, issn: str, year: int, issue: str) -> SearchPage:
         return SearchPage(records=tuple(self.records))
 
 

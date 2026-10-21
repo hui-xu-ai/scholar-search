@@ -67,9 +67,7 @@ def _sort(query: SearchQuery) -> tuple[Action, ...]:
     return (
         # Reset to relevance first: the grid remembers the direction of the
         # previous sort, and a direct click would toggle it unpredictably.
-        Action(
-            "click", {"selector": SORT["relevance"]}, timeout_ms=CLICK_TIMEOUT_MS
-        ),
+        Action("click", {"selector": SORT["relevance"]}, timeout_ms=CLICK_TIMEOUT_MS),
         Action("sleep", {"ms": 900}, timeout_ms=2_000),
         Action("click", {"selector": selector}, timeout_ms=CLICK_TIMEOUT_MS),
         Action("sleep", {"ms": 1200}, timeout_ms=2_000),
@@ -87,13 +85,9 @@ def _page_size(query: SearchQuery) -> tuple[Action, ...]:
     if query.limit <= 20:
         return ()
     return (
-        Action(
-            "click", {"selector": SEARCH["page_size_open"]}, timeout_ms=CLICK_TIMEOUT_MS
-        ),
+        Action("click", {"selector": SEARCH["page_size_open"]}, timeout_ms=CLICK_TIMEOUT_MS),
         Action("sleep", {"ms": 400}, timeout_ms=2_000),
-        Action(
-            "click", {"selector": SEARCH["page_size_50"]}, timeout_ms=CLICK_TIMEOUT_MS
-        ),
+        Action("click", {"selector": SEARCH["page_size_50"]}, timeout_ms=CLICK_TIMEOUT_MS),
         Action("sleep", {"ms": 1200}, timeout_ms=2_000),
     )
 

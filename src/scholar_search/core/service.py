@@ -11,6 +11,7 @@ import json
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from .. import __version__
 from .cache import Cache
@@ -22,11 +23,12 @@ from .contracts import (
     SearchPage,
     SearchQuery,
 )
-from .errors import ChannelError, ParseError, PolicyError
+from .errors import ActionError, ChannelError, ParseError, PolicyError
 from .export import to_endnote, to_ris
 from .planner import Planner
 from .policy import PolicyEngine
 from .registry import ChannelRegistry, ChannelSpec
+from .risk import RiskGuard
 
 
 class ScholarService:
@@ -39,6 +41,7 @@ class ScholarService:
         policy: PolicyEngine,
         cache: Cache,
         status_provider: Callable[[], dict[str, Any]] | None = None,
+        risk: RiskGuard | None = None,
     ) -> None:
         self._registry = registry
         self._adapter_factory = adapter_factory
@@ -46,11 +49,17 @@ class ScholarService:
         self._policy = policy
         self._cache = cache
         self._status_provider = status_provider or (lambda: {})
+        self._risk = risk
+
+    def _ensure_ready(self) -> None:
+        if self._risk is not None:
+            self._risk.ensure_ready()
 
     # -- public surface -------------------------------------------------
 
     def search(self, query: SearchQuery) -> SearchPage:
         query.validate()
+        self._ensure_ready()
         spec, channel = self._resolve(query.channel)
         key = _key("search", spec, query)
 
@@ -85,6 +94,7 @@ class ScholarService:
         return page
 
     def detail(self, url: str, *, channel: str) -> Record:
+        self._ensure_ready()
         spec, impl = self._resolve(channel)
         self._validate_detail_url(url, spec)
 
@@ -97,9 +107,8 @@ class ScholarService:
         self._cache.set(key, record.to_dict())
         return record
 
-    def journal(
-        self, *, issn: str, year: int, issue: str, channel: str
-    ) -> SearchPage:
+    def journal(self, *, issn: str, year: int, issue: str, channel: str) -> SearchPage:
+        self._ensure_ready()
         spec, impl = self._resolve(channel)
         if "journal" not in spec.manifest.capabilities:
             raise ChannelError(f"channel {channel!r} does not support journal listings")
@@ -110,15 +119,11 @@ class ScholarService:
             return _page_from(cached)
 
         plan = impl.plan_journal(issn=issn, year=year, issue=issue)
-        page = impl.parse_journal(
-            _html(self._run(plan, spec)), issn=issn, year=year, issue=issue
-        )
+        page = impl.parse_journal(_html(self._run(plan, spec)), issn=issn, year=year, issue=issue)
         self._cache.set(key, _page_to(page))
         return page
 
-    def export(
-        self, records: Sequence[Record], *, fmt: Literal["ris", "endnote"]
-    ) -> str:
+    def export(self, records: Sequence[Record], *, fmt: Literal["ris", "endnote"]) -> str:
         if fmt == "ris":
             return to_ris(records)
         if fmt == "endnote":
@@ -136,19 +141,28 @@ class ScholarService:
 
     def _validate_detail_url(self, url: str, spec: ChannelSpec) -> None:
         self._policy.check_url(url, spec.manifest.domains)
-        path = url.split("?", 1)[0]
+        path = urlparse(url).path
         prefixes = spec.manifest.detail_url_prefixes
-        if prefixes and not any(prefix in path for prefix in prefixes):
-            raise PolicyError(
-                f"detail URL path is not allowed: {path}", rule="url.detail_path"
-            )
+        if prefixes and not any(path.startswith(prefix) for prefix in prefixes):
+            raise PolicyError(f"detail URL path is not allowed: {path}", rule="url.detail_path")
 
     def _run(self, plan: Any, spec: ChannelSpec) -> tuple[ActionOutcome, ...]:
         adapter = self._adapter_factory()
+        planner = self._planner_factory(adapter)
+        if self._risk is None:
+            self._risk = getattr(planner, "risk", None)
         try:
-            return self._planner_factory(adapter).run(plan, spec.manifest)
+            outcomes = planner.run(plan, spec.manifest)
         finally:
             adapter.close()
+        for outcome in outcomes:
+            if not outcome.ok:
+                raise ActionError(
+                    f"{outcome.action.verb} failed: {outcome.error or 'unknown'}",
+                    verb=outcome.action.verb,
+                    code=outcome.error or "action.failed",
+                )
+        return outcomes
 
 
 # -- cache serialisation ---------------------------------------------------

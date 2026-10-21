@@ -7,7 +7,6 @@ may make behaviour stricter, never looser. Loosening requires a new ADR.
 from __future__ import annotations
 
 import os
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -84,12 +83,12 @@ def ensure_home() -> Path:
 def host_runtime_dir() -> Path:
     """Directory the browser-launched host may write to.
 
-    Chrome and Edge start native messaging hosts at low integrity, which cannot
-    write under ``AppData\\Local``. The per-user temp directory is writable at
-    that level, so the bridge endpoint and host log live there.
+    It stays inside :func:`app_home` so the documented HOME boundary holds.
+    The installer marks this subtree as low-integrity writable, because Chrome
+    and Edge start native messaging hosts at low integrity.
     """
 
-    return Path(tempfile.gettempdir()) / APP_NAME
+    return app_home() / "host"
 
 
 def ensure_host_runtime() -> Path:

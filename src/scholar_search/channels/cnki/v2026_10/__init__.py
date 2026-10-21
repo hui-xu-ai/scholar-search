@@ -50,9 +50,7 @@ class CnkiChannel:
     def plan_journal(self, *, issn: str, year: int, issue: str) -> Plan:
         raise ChannelError("cnki channel does not implement journal listings yet")
 
-    def parse_journal(
-        self, html: str, *, issn: str, year: int, issue: str
-    ) -> SearchPage:
+    def parse_journal(self, html: str, *, issn: str, year: int, issue: str) -> SearchPage:
         raise ChannelError("cnki channel does not implement journal listings yet")
 
 

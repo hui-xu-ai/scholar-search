@@ -206,9 +206,7 @@ class Channel(Protocol):
 
     def plan_journal(self, *, issn: str, year: int, issue: str) -> Plan: ...
 
-    def parse_journal(
-        self, html: str, *, issn: str, year: int, issue: str
-    ) -> SearchPage: ...
+    def parse_journal(self, html: str, *, issn: str, year: int, issue: str) -> SearchPage: ...
 
 
 # --------------------------------------------------------------------------
@@ -230,8 +228,7 @@ class ExecutionPolicy:
     def clamp_interval(self, requested_ms: int) -> int:
         if requested_ms < self.min_interval_ms:
             raise ValueError(
-                f"interval {requested_ms}ms is below the hard floor "
-                f"{self.min_interval_ms}ms"
+                f"interval {requested_ms}ms is below the hard floor {self.min_interval_ms}ms"
             )
         return min(requested_ms, self.max_interval_ms)
 
@@ -289,9 +286,7 @@ class Service(Protocol):
 
     def detail(self, url: str, *, channel: str) -> Record: ...
 
-    def journal(
-        self, *, issn: str, year: int, issue: str, channel: str
-    ) -> SearchPage: ...
+    def journal(self, *, issn: str, year: int, issue: str, channel: str) -> SearchPage: ...
 
     def export(self, records: Sequence[Record], *, fmt: Literal["ris", "endnote"]) -> str: ...
 
@@ -302,4 +297,3 @@ class Transport(Protocol):
     name: str
 
     def serve(self, service: Service) -> None: ...
-

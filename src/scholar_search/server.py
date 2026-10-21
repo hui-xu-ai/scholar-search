@@ -6,8 +6,9 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
-from .core.contracts import Record, SearchQuery
+from .core.contracts import SearchQuery
 from .core.errors import RiskBlocked, ScholarSearchError
+from .core.export import record_from_payload
 from .core.service import ScholarService
 
 
@@ -73,9 +74,9 @@ def build_server(service: ScholarService) -> FastMCP:
     ) -> dict[str, Any]:
         """Render records as RIS or EndNote text. No file is written."""
         try:
-            typed = [Record(**item) for item in records]
+            typed = [record_from_payload(item) for item in records]
             return {"format": format, "text": service.export(typed, fmt=format)}
-        except (RiskBlocked, ScholarSearchError, TypeError) as error:
+        except (RiskBlocked, ScholarSearchError, TypeError, ValueError) as error:
             return _payload(error if isinstance(error, Exception) else ValueError("bad record"))
 
     @mcp.tool()

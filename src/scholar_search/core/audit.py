@@ -48,15 +48,18 @@ class AuditLog:
         verb: str,
         ok: bool,
         duration_ms: int,
+        error: str | None = None,
     ) -> None:
-        self.write(
-            "action",
-            channel=channel,
-            purpose=purpose,
-            verb=verb,
-            ok=ok,
-            duration_ms=duration_ms,
-        )
+        fields: dict[str, Any] = {
+            "channel": channel,
+            "purpose": purpose,
+            "verb": verb,
+            "ok": ok,
+            "duration_ms": duration_ms,
+        }
+        if error:
+            fields["error"] = error[:120]
+        self.write("action", **fields)
 
     def risk(self, *, channel: str, signal: str, cooldown_until: str) -> None:
         self.write(

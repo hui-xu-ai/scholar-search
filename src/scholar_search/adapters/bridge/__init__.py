@@ -3,6 +3,10 @@
 The host listens on loopback only and requires a per-run token. Several hosts
 may exist at once (one per browser reconnect), so the adapter pings the
 registry and talks to whichever host answers.
+
+There is no transparent retry: a request that may already have reached the
+browser is never replayed, because the kernel has metered it once and the
+action may have had side effects.
 """
 
 from __future__ import annotations
@@ -34,6 +38,7 @@ class BridgeAdapter:
         self._reader: Any = None
         self._token: str | None = None
         self._port: int | None = None
+        self.domains: tuple[str, ...] | None = None
 
     # -- discovery -----------------------------------------------------
 
@@ -70,6 +75,13 @@ class BridgeAdapter:
             return None
         return None
 
+    @classmethod
+    def probe(cls) -> bool:
+        """True when at least one registered host answers a ping."""
+
+        probe = cls()
+        return any(probe._ping(path) is not None for path in probe._candidates())
+
     def _connect(self) -> None:
         if self._socket is not None:
             return
@@ -88,37 +100,44 @@ class BridgeAdapter:
 
     def _send(self, action: Action, timeout_ms: int) -> ActionOutcome:
         assert self._socket is not None and self._reader is not None
+        request_id = uuid.uuid4().hex
         request = {
-            "id": uuid.uuid4().hex,
+            "id": request_id,
             "token": self._token,
             "action": action.verb,
             "params": dict(action.params),
             "timeout_ms": timeout_ms,
+            "domains": list(self.domains or ()),
         }
         self._socket.sendall((json.dumps(request, ensure_ascii=False) + "\n").encode("utf-8"))
         line = self._reader.readline()
         if not line:
             raise ConnectionError("bridge closed the connection")
         reply = json.loads(line)
+        data = dict(reply.get("data") or {})
+        if str(reply.get("id", "")) != request_id:
+            # A reply that carries a navigation URL is still risk-relevant; the
+            # mismatch is recorded instead of discarding a possible gate.
+            if not isinstance(data.get("url"), str):
+                raise ConnectionError("bridge reply id does not match the request")
+            data["correlation"] = "mismatch"
+
+        url = reply.get("url") or data.get("url")
         return ActionOutcome(
             action=action,
             ok=bool(reply.get("ok")),
-            data=dict(reply.get("data") or {}),
+            data=data,
             error=reply.get("error"),
             duration_ms=int(reply.get("duration_ms") or 0),
-            url=reply.get("url"),
+            url=url if isinstance(url, str) else None,
         )
 
     def execute(self, action: Action, *, timeout_ms: int) -> ActionOutcome:
-        for attempt in range(2):
-            try:
-                self._connect()
-                return self._send(action, timeout_ms)
-            except (OSError, ValueError, KeyError) as exc:
-                self.close()
-                if attempt == 1:
-                    return ActionOutcome(action=action, ok=False, error=f"bridge.error: {exc}")
-        return ActionOutcome(action=action, ok=False, error="bridge.error: unreachable")
+        try:
+            self._connect()
+            return self._send(action, timeout_ms)
+        except (OSError, ValueError, KeyError) as exc:
+            return ActionOutcome(action=action, ok=False, error=f"bridge.error: {exc}")
 
     def close(self) -> None:
         for closable in (self._reader, self._socket):

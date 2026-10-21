@@ -1,6 +1,8 @@
 scholar-search
 ==============
 
+Version: 0.3.0 (2026-10-21)
+
 Academic search: a read-only, microkernel-based scholarly metadata service.
 
 This project is an independent, non-official tool. It is not affiliated with,

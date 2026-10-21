@@ -7,6 +7,7 @@ import re
 from bs4 import BeautifulSoup, Tag
 
 from ....core.contracts import Record, SearchPage, SearchQuery
+from ....core.errors import ParseError
 from .selectors import SEARCH
 
 _TOTAL = re.compile(r"([\d,]+)")
@@ -69,11 +70,17 @@ def _node_text(soup: BeautifulSoup, selector: str) -> str:
 def parse(html: str, query: SearchQuery) -> SearchPage:
     soup = BeautifulSoup(html, "lxml")
 
+    table = soup.select_one(".result-table-list")
+    total_text = _node_text(soup, SEARCH["total"])
+    marker_text = _node_text(soup, SEARCH["page_marker"])
+    if table is None and not total_text and not marker_text:
+        raise ParseError("page has no result-grid structure")
+
     rows = soup.select(SEARCH["row"])
     records = [record for row in rows if (record := _record(row)) is not None]
 
-    total_match = _TOTAL.search(_node_text(soup, SEARCH["total"]))
-    page_match = _PAGE.search(_node_text(soup, SEARCH["page_marker"]))
+    total_match = _TOTAL.search(total_text)
+    page_match = _PAGE.search(marker_text)
 
     return SearchPage(
         records=tuple(records),

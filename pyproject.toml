@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scholar-search"
-version = "0.2.6"
+version = "0.3.0"
 description = "学术检索：只读的学术题录检索微内核，渠道可插拔（知网为首个渠道）"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,8 +36,34 @@ scholar-search = "scholar_search.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/scholar_search"]
 
+# Browser-side assets travel inside the wheel so a package-only install can
+# still complete the documented native-host and extension setup.
+[tool.hatch.build.targets.wheel.force-include]
+"native-host/main.py" = "scholar_search/assets/native-host/main.py"
+"native-host/launcher.cs" = "scholar_search/assets/native-host/launcher.cs"
+"native-host/install.ps1" = "scholar_search/assets/native-host/install.ps1"
+"native-host/README.md" = "scholar_search/assets/native-host/README.md"
+"extension/manifest.json" = "scholar_search/assets/extension/manifest.json"
+"extension/background.js" = "scholar_search/assets/extension/background.js"
+"extension/content/actions.js" = "scholar_search/assets/extension/content/actions.js"
+"schemas/record.json" = "scholar_search/assets/schemas/record.json"
+"schemas/tools.json" = "scholar_search/assets/schemas/tools.json"
+
 [tool.hatch.build.targets.sdist]
-include = ["src", "docs", "schemas", "README.md", "LICENSE", "NOTICE"]
+include = [
+  "src",
+  "docs",
+  "schemas",
+  "native-host",
+  "extension",
+  "skills",
+  "tests/fixtures",
+  "README.md",
+  "LICENSE",
+  "NOTICE",
+  "CHANGELOG.md",
+  "AGENTS.md",
+]
 
 [tool.ruff]
 line-length = 100
@@ -63,6 +89,7 @@ mypy_path = "src"
 testpaths = ["tests"]
 addopts = "-q"
 markers = ["e2e: live browser tests, opt-in only"]
+
 
 
 

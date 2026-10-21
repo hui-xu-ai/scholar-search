@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import importlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -81,35 +81,22 @@ class ChannelRegistry:
                 raise ChannelError(f"invalid manifest at {manifest_path}: {exc}") from exc
 
             versions = sorted(
-                (
-                    p.name
-                    for p in channel_dir.iterdir()
-                    if p.is_dir() and p.name.startswith("v")
-                ),
+                (p.name for p in channel_dir.iterdir() if p.is_dir() and p.name.startswith("v")),
                 key=_version_key,
             )
             if not versions:
-                raise ChannelError(
-                    f"channel {manifest.channel!r} has no version directory"
-                )
+                raise ChannelError(f"channel {manifest.channel!r} has no version directory")
 
             for version in versions:
                 site_version = version[1:].replace("_", ".")
-                if site_version != manifest.site_version:
-                    raise ChannelError(
-                        f"{channel_dir.name}/{version} declares site_version "
-                        f"{manifest.site_version!r} but directory implies "
-                        f"{site_version!r}"
-                    )
+                # Old site versions stay loadable: each directory declares its
+                # own version instead of having to match the channel manifest.
                 specs.append(
                     ChannelSpec(
                         name=manifest.channel,
                         site_version=site_version,
-                        manifest=manifest,
-                        package=(
-                            f"{_PACKAGE_ROOT}.channels."
-                            f"{channel_dir.name}.{version}"
-                        ),
+                        manifest=replace(manifest, site_version=site_version),
+                        package=(f"{_PACKAGE_ROOT}.channels.{channel_dir.name}.{version}"),
                     )
                 )
         return specs
@@ -119,9 +106,7 @@ class ChannelRegistry:
         if not candidates:
             raise ChannelNotFound(f"channel {name!r} is not installed")
 
-        usable = [
-            spec for spec in candidates if CORE_VERSION >= Version(spec.manifest.min_core)
-        ]
+        usable = [spec for spec in candidates if CORE_VERSION >= Version(spec.manifest.min_core)]
         if not usable:
             raise ChannelError(
                 f"channel {name!r} requires core >= {candidates[0].manifest.min_core}"
@@ -131,9 +116,7 @@ class ChannelRegistry:
             for spec in usable:
                 if spec.site_version == site_version:
                     return spec
-            raise ChannelNotFound(
-                f"channel {name!r} has no site version {site_version!r}"
-            )
+            raise ChannelNotFound(f"channel {name!r} has no site version {site_version!r}")
 
         return max(usable, key=lambda spec: _version_key(spec.site_version))
 
@@ -145,9 +128,7 @@ class ChannelRegistry:
             raise ChannelError(f"{spec.package} does not export get_channel()")
         channel: Channel = factory()
         if channel.manifest.channel != name:
-            raise ChannelError(
-                f"channel {spec.package} reports name {channel.manifest.channel!r}"
-            )
+            raise ChannelError(f"channel {spec.package} reports name {channel.manifest.channel!r}")
         return channel
 
     def __iter__(self) -> Iterator[ChannelSpec]:

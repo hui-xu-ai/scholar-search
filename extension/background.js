@@ -1,11 +1,12 @@
 /* scholar-search bridge — service worker.
  *
  * Relays actions from the native host to the active tab. It knows no site
- * structure: every DOM decision arrives from the Python channel plugin.
+ * structure: the kernel and the channel manifest decide which hosts and DOM
+ * selectors are legitimate.
  */
 
 const HOST_NAME = "com.scholar.search";
-const ALLOWED_HOST = /(^|\.)cnki\.net$/i;
+const PROTOCOL_VERSION = 1;
 
 let port = null;
 
@@ -47,15 +48,30 @@ function waitComplete(tabId, timeoutMs = 15000) {
   });
 }
 
+async function pageMeta(tabId) {
+  try {
+    const result = await chrome.tabs.sendMessage(tabId, { type: "meta" });
+    return (result && result.data) || {};
+  } catch (error) {
+    return {};
+  }
+}
+
 async function onHostMessage(message, channel) {
-  if (!message || message.type !== "action") return;
+  if (!message) return;
+
+  if (message.type === "hello") {
+    channel.postMessage({
+      type: "hello_ack",
+      id: message.id,
+      protocol: PROTOCOL_VERSION,
+    });
+    return;
+  }
+  if (message.type !== "action") return;
 
   const { id, action, params } = message;
-  console.log("scholar-search: action", action);
-  const reply = (payload) => {
-    console.log("scholar-search: reply", payload.ok, payload.error || "");
-    channel.postMessage({ type: "action_result", id, ...payload });
-  };
+  const reply = (payload) => channel.postMessage({ type: "action_result", id, ...payload });
 
   try {
     const tab = await activeTab();
@@ -63,12 +79,23 @@ async function onHostMessage(message, channel) {
 
     if (action === "goto") {
       const url = new URL(params.url);
-      if (url.protocol !== "https:" || !ALLOWED_HOST.test(url.hostname)) {
-        throw new Error("policy.domain");
-      }
+      if (url.protocol !== "https:") throw new Error("policy.url_scheme");
       await chrome.tabs.update(tab.id, { url: params.url });
       await waitComplete(tab.id);
-      return reply({ ok: true, data: { url: params.url, title: tab.title || "" } });
+
+      const updated = await chrome.tabs.get(tab.id);
+      const meta = await pageMeta(tab.id);
+      const status = Number(meta.status || 0);
+      if (status >= 400) throw new Error(`HTTP ${status}`);
+      return reply({
+        ok: true,
+        data: {
+          ...meta,
+          url: updated.url || params.url,
+          title: updated.title || "",
+          status: status || undefined,
+        },
+      });
     }
 
     const result = await chrome.tabs.sendMessage(tab.id, {

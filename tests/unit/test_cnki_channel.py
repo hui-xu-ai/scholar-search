@@ -7,9 +7,7 @@ from scholar_search.core.contracts import SearchQuery
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_search_2026_10.html"
 DETAIL_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_2026_10.html"
-PRINT_FIXTURE = (
-    Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_print_2026_10.html"
-)
+PRINT_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "cnki_detail_print_2026_10.html"
 
 SEARCH_HTML = """
 <html><body>
@@ -92,8 +90,23 @@ def test_expression_plan_uses_expert_page() -> None:
 
 def test_all_documented_fields_route_to_expert_page() -> None:
     for field in (
-        "SU", "TKA", "KY", "TI", "FT", "AU", "FI", "RP", "AF",
-        "FU", "AB", "CO", "RF", "CLC", "LY", "DOI", "CF",
+        "SU",
+        "TKA",
+        "KY",
+        "TI",
+        "FT",
+        "AU",
+        "FI",
+        "RP",
+        "AF",
+        "FU",
+        "AB",
+        "CO",
+        "RF",
+        "CLC",
+        "LY",
+        "DOI",
+        "CF",
     ):
         plan = plan_search.build(SearchQuery(text=f"{field}='x'", channel="cnki"))
         assert str(plan.actions[0].params["url"]).startswith(
@@ -103,9 +116,7 @@ def test_all_documented_fields_route_to_expert_page() -> None:
 
 def test_author_wildcard_routes_to_expert_page() -> None:
     plan = plan_search.build(SearchQuery(text="AU % '陈'", channel="cnki"))
-    assert str(plan.actions[0].params["url"]).startswith(
-        "https://kns.cnki.net/kns8s/AdvSearch"
-    )
+    assert str(plan.actions[0].params["url"]).startswith("https://kns.cnki.net/kns8s/AdvSearch")
 
 
 def test_page_two_adds_a_page_turn() -> None:

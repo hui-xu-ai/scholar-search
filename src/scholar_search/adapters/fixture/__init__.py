@@ -30,8 +30,7 @@ class FixtureAdapter:
 
     def __init__(self, steps: Sequence[FixtureStep | Mapping[str, Any]]) -> None:
         self._steps: list[FixtureStep] = [
-            step if isinstance(step, FixtureStep) else FixtureStep(**step)
-            for step in steps
+            step if isinstance(step, FixtureStep) else FixtureStep(**step) for step in steps
         ]
         self._cursor = 0
         self.closed = False
@@ -45,8 +44,7 @@ class FixtureAdapter:
             raise RuntimeError("adapter is closed")
         if self._cursor >= len(self._steps):
             raise AssertionError(
-                f"fixture exhausted at {action.verb!r}; "
-                f"expected no further actions"
+                f"fixture exhausted at {action.verb!r}; expected no further actions"
             )
 
         step = self._steps[self._cursor]

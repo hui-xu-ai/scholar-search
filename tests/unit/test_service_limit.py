@@ -26,9 +26,7 @@ class FakeClock:
 
 def build(tmp_path: Path, channel: FakeChannel, scripts: list[list[dict[str, object]]]):
     clock = FakeClock()
-    policy = PolicyEngine(
-        clock=clock.time, sleeper=clock.sleep, state_path=tmp_path / "quota.json"
-    )
+    policy = PolicyEngine(clock=clock.time, sleeper=clock.sleep, state_path=tmp_path / "quota.json")
     risk = RiskGuard(state_path=tmp_path / "cooldown.json")
     audit = AuditLog(path=tmp_path / "audit.jsonl")
 
@@ -79,9 +77,7 @@ def test_year_filter_applies_to_fetched_records(tmp_path: Path) -> None:
     ]
     service = build(tmp_path, channel, scripts)
 
-    page = service.search(
-        SearchQuery(text="x", channel="fake", year_from=2021, year_to=2022)
-    )
+    page = service.search(SearchQuery(text="x", channel="fake", year_from=2021, year_to=2022))
 
     assert [record.year for record in page.records] == [2021, 2022]
     assert page.total == 5

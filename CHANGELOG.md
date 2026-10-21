@@ -4,6 +4,54 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-21
+
+Security and contract hardening from the independent offline audit
+(`independent-20261021-01`). Breaking: several invalid inputs that were quietly
+accepted now fail loudly.
+
+### Fixed
+
+- **F01** Navigation replies carry the final URL and current title; the adapter
+  surfaces a nested `data.url`; HTTP status is collected from the content script
+  and `403` reaches the risk guard.
+- **F02** Captcha visibility requires an on-screen, non-zero-size element that
+  intersects the viewport; every action result carries the risk snapshot.
+- **F03** Quota and interval are read and written under an inter-process lock;
+  plans are serialized process-wide, so two servers cannot double-spend.
+- **F04** The adapter never replays an action after a connection failure.
+- **F05** A failed action stops the plan; the service raises `ActionError` and
+  never parses or caches the page as a success.
+- **F06** The cooldown deadline is latched in memory, so a failed state write
+  cannot unblock the process that just detected a risk.
+- **F07** Cache hits still respect an active cooldown.
+- **F08** Replies are correlated with request ids; a handshake precedes the
+  first action; the bridge protocol doc separates TCP JSON from native framing.
+- **F09** One closed parameter schema (`core/params.py`) is enforced by kernel
+  and host; deadlines above 15s are rejected; frames are capped at 2 MiB on
+  write and `read_html` truncates by UTF-8 bytes with a `truncated` flag;
+  `wait_for` honours `state=hidden`.
+- **F10** Export validates records against the public schema and refuses
+  newline/type injection in any field.
+- **F11** Malformed search pages and non-article detail pages raise `ParseError`
+  instead of being cached as empty/valid results.
+- **F12** Detail URL authorisation uses the parsed path prefix.
+- **F13** Old site-version directories stay discoverable; selecting a version
+  no longer requires every directory to match the channel manifest.
+- **F14** Domain authority moves to the selected manifest (sent per request);
+  the host no longer hard-codes CNKI and the extension accepts any https host.
+- **F15** Host runtime files live under `SCHOLAR_SEARCH_HOME/host`; the
+  installer labels that directory low-integrity writable.
+- **F16** HTTP Host check compares the whole hostname, not a prefix.
+- **F17** Wheel ships native-host, extension and schemas as package assets;
+  `scholar-search assets --target DIR` extracts them; sdist includes browser
+  sources and fixtures.
+- **F18** `schemas/tools.json` matches the four live tools; README, NOTICE and
+  package metadata are on 0.3.0.
+- **F19** `status.bridge_ready` probes a live host instead of checking for a file.
+- **F20** `ruff format --check` passes and `.pre-commit-config.yaml` is present.
+
+
 ## [0.2.6] - 2026-10-21
 
 ### Added

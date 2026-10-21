@@ -87,7 +87,11 @@ def _source(soup: BeautifulSoup) -> tuple[str | None, str]:
 def parse(html: str, url: str) -> Record:
     soup = BeautifulSoup(html, "lxml")
 
-    title_node = soup.select_one(DETAIL["title"]) or soup.select_one("h1")
+    # A bare <h1> is not enough: error pages ("Service unavailable") have one.
+    titled = soup.select_one(DETAIL["title"])
+    if titled is None and soup.select_one(DETAIL["abstract"]) is None:
+        raise ParseError("detail page has no article header or abstract")
+    title_node = titled or soup.select_one("h1")
     raw_title = _text(title_node)
     if not raw_title:
         raise ParseError("detail page has no title")

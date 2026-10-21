@@ -3,6 +3,9 @@
 Framing matches the Chrome/Edge native messaging protocol: a 4-byte
 little-endian length followed by a UTF-8 JSON object. stdout carries frames
 only; every diagnostic goes to stderr.
+
+One handshake precedes the first action, and every reply must carry the id of
+its request; both checks keep the two hops of the bridge in sync.
 """
 
 from __future__ import annotations
@@ -17,6 +20,8 @@ from collections.abc import Callable
 from typing import IO, Any
 
 from .policy import MAX_FRAME_BYTES, validate_request
+
+PROTOCOL_VERSION = 1
 
 
 class BridgeClosed(RuntimeError):
@@ -43,6 +48,8 @@ def read_frame(stream: IO[bytes]) -> dict[str, Any] | None:
 
 def write_frame(stream: IO[bytes], message: dict[str, Any]) -> None:
     payload = json.dumps(message, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    if len(payload) > MAX_FRAME_BYTES:
+        raise ValueError(f"frame is {len(payload)} bytes, limit is {MAX_FRAME_BYTES}")
     stream.write(struct.pack("=I", len(payload)))
     stream.write(payload)
     stream.flush()
@@ -64,6 +71,7 @@ class BridgeHost:
         self._lock = threading.Condition()
         self._pending: dict[str, dict[str, Any] | None] = {}
         self._closed = False
+        self._handshaked = False
 
     @property
     def closed(self) -> bool:
@@ -78,7 +86,7 @@ class BridgeHost:
                 message = read_frame(self._in)
                 if message is None:
                     break
-                if message.get("type") == "action_result":
+                if message.get("type") in {"action_result", "hello_ack"}:
                     request_id = str(message.get("id", ""))
                     with self._lock:
                         if request_id in self._pending:
@@ -91,6 +99,42 @@ class BridgeHost:
                 self._closed = True
                 self._lock.notify_all()
 
+    def _wait(self, request_id: str, deadline: float) -> dict[str, Any] | None:
+        with self._lock:
+            while self._pending.get(request_id) is None and not self._closed:
+                remaining = deadline - self._clock()
+                if remaining <= 0:
+                    break
+                self._lock.wait(remaining)
+            return self._pending.pop(request_id, None)
+
+    def _handshake(self, deadline: float) -> bool:
+        if self._handshaked:
+            return True
+        request_id = uuid.uuid4().hex
+        with self._lock:
+            if self._closed:
+                return False
+            self._pending[request_id] = None
+        try:
+            write_frame(
+                self._out,
+                {
+                    "type": "hello",
+                    "id": request_id,
+                    "protocol": PROTOCOL_VERSION,
+                },
+            )
+        except (OSError, ValueError):
+            with self._lock:
+                self._pending.pop(request_id, None)
+            return False
+        reply = self._wait(request_id, deadline)
+        if reply is None or reply.get("protocol") != PROTOCOL_VERSION:
+            return False
+        self._handshaked = True
+        return True
+
     def request(
         self,
         action: str,
@@ -98,19 +142,27 @@ class BridgeHost:
         *,
         timeout_s: float = 15.0,
         domains: tuple[str, ...] | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         """Send one action to the extension and wait for its reply."""
 
-        request_id = uuid.uuid4().hex
+        request_id = request_id or uuid.uuid4().hex
+        if timeout_s <= 0:
+            return {"ok": False, "error": "bridge.timeout", "id": request_id}
+
         message: dict[str, Any] = {
             "type": "action",
             "id": request_id,
             "action": action,
             "params": params,
         }
-        error = validate_request(message, domains or ("kns.cnki.net", "www.cnki.net"))
+        error = validate_request(message, domains)
         if error is not None:
             return {"ok": False, "error": error, "id": request_id}
+
+        deadline = self._clock() + timeout_s
+        if not self._handshake(deadline):
+            return {"ok": False, "error": "bridge.timeout", "id": request_id}
 
         with self._lock:
             if self._closed:
@@ -119,20 +171,12 @@ class BridgeHost:
 
         try:
             write_frame(self._out, message)
-        except OSError:
+        except (OSError, ValueError):
             with self._lock:
                 self._pending.pop(request_id, None)
             return {"ok": False, "error": "bridge.write", "id": request_id}
 
-        deadline = self._clock() + timeout_s
-        with self._lock:
-            while self._pending.get(request_id) is None and not self._closed:
-                remaining = deadline - self._clock()
-                if remaining <= 0:
-                    break
-                self._lock.wait(remaining)
-            reply = self._pending.pop(request_id, None)
-
+        reply = self._wait(request_id, deadline)
         if reply is None:
             return {
                 "ok": False,

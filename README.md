@@ -7,8 +7,9 @@
 ## 它做什么
 
 - 关键词检索：标题、作者、刊名、年份、被引、下载、链接
-- 专业检索式：`SU='IPMC' and KY='驱动器'`，支持 `SU/TI/KY/AU/AF/AB/FT/LY/DOI/CF`
-- 翻页：一次最多 3 页
+- 专业检索式：支持官方 17 个字段 `SU/TKA/KY/TI/FT/AU/FI/RP/AF/FU/AB/CO/RF/CLC/LY/DOI/CF`，运算符 `and/*`、`or/+`、`not/-`、`%`
+- 每页 20 或 50 条；单次最多 3 页
+- 排序：相关度、发表时间、被引（后两者稳定降序）
 - 单篇详情：摘要、DOI、卷期页、关键词、作者单位
 - 导出 RIS / EndNote 题录文本
 
@@ -17,7 +18,7 @@
 - 不下载 PDF / CAJ，不调用任何下载接口
 - 不破解验证码，遇到风控立即停机并提示人工处理
 - 不做批量循环抓取，不提供公网服务，不共享账号
-- 不实现年份 / 来源 / 排序筛选（传了会明确报错，不会静默忽略）
+- 不实现来源类型筛选（传了会明确报错）；年份筛选只作用于已抓取的记录
 
 ## 安全边界
 
@@ -41,7 +42,7 @@ MCP 客户端 ──stdio/HTTP──▶ MCP server ──▶ 内核（策略/风
 
 ## 状态
 
-v0.2.0。真机验证过的能力：
+v0.3.0。真机验证过的能力：
 
 | 能力 | 状态 |
 |---|---|
@@ -64,11 +65,21 @@ scholar-search --help
 
 浏览器侧（只需一次）：
 
+源码安装时，宿主与扩展就在仓库里：
+
 ```powershell
 pwsh native-host/install.ps1
 ```
 
-然后在 `edge://extensions` 打开开发者模式，加载 `extension/` 目录。
+只装了 wheel 时，先把随包资源导出来，再执行同一脚本：
+
+```powershell
+scholar-search assets --target .\browser
+pwsh .\browser\native-host\install.ps1
+```
+
+然后在 `edge://extensions` 打开开发者模式，加载 `.\browser\extension\`（源码安装则为 `extension/`）。
+安装脚本会把 `%LOCALAPPDATA%\scholar-search\host` 标记为低完整性可写，浏览器启动的宿主才能写入端点文件。
 
 MCP 接入：
 

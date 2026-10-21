@@ -1,48 +1,86 @@
-# Bridge protocol (native messaging)
+# Bridge protocol
 
-The bridge is the only component allowed to touch a browser. It is deliberately
-dumb: it executes named actions and returns page content. It knows nothing
-about any website.
+The bridge is the only component allowed to touch a browser. It executes named
+actions and returns page content; site knowledge stays in the channel plugin.
 
-## Envelope
+There are two hops, with different framing:
 
-One JSON object per line over stdio. Requests carry an id; responses must echo
-it. No streaming, no batching.
-
-```json
-{"id":"7f3a","action":"goto","params":{"url":"https://kns.cnki.net/"},"deadline_ms":15000}
-{"id":"7f3a","ok":true,"data":{"url":"https://kns.cnki.net/"},"meta":{"duration_ms":612}}
+```
+MCP server ──TCP, line-delimited JSON──▶ native host ──native messaging, 4-byte length + JSON──▶ extension
 ```
 
+## Hop 1: TCP (MCP server ↔ native host)
+
+Loopback only, one JSON object per line, authenticated with the per-run token
+written to `bridge.json`.
+
+Request:
+
 ```json
-{"id":"7f3b","ok":false,"error":{"code":"policy.domain","message":"host not allowed"},"meta":{"duration_ms":0}}
+{"id":"7f3a","token":"…","action":"goto","params":{"url":"https://kns.cnki.net/"},
+ "timeout_ms":15000,"domains":["kns.cnki.net"]}
 ```
 
-## Verbs
+Reply: the same `id`, `ok`, optional `error`, `data`, `url`, `duration_ms`.
+
+- `domains` is the selected channel manifest's allowlist; the host enforces it
+  in addition to the kernel.
+- `timeout_ms` must be `1..15000`; larger values are rejected before forwarding.
+- The adapter rejects a reply whose `id` does not match, unless the reply still
+  carries a navigation URL (that URL is risk-relevant and is evaluated).
+
+## Hop 2: native messaging (host ↔ extension)
+
+Chrome/Edge framing: a 4-byte little-endian length followed by a UTF-8 JSON
+object. stdout carries frames only; diagnostics go to stderr.
+
+First exchange is a handshake:
+
+```json
+{"type":"hello","id":"…","protocol":1}
+{"type":"hello_ack","id":"…","protocol":1}
+```
+
+A host that gets no acknowledged handshake sends no action frame. After that,
+each action frame carries `id`, `action`, `params`; the reply is
+`{"type":"action_result","id":"…","ok":…,"data":…}` with the same id.
+
+## Verbs and parameters
 
 | Verb | Params | Returns |
 |---|---|---|
-| `goto` | `url` | `{url, title}` |
-| `wait_for` | `selector`, `state?`, `timeout_ms?` | `{matched: bool}` |
+| `goto` | `url` (https) | `{url, title, status, captcha_visible, auth_required}` |
+| `wait_for` | `selector`, `state?` (`visible`/`hidden`), `timeout_ms?` | `{matched}` |
 | `type` | `selector`, `text`, `clear?` | `{}` |
 | `click` | `selector` | `{}` |
 | `select` | `selector`, `value` | `{}` |
-| `read_html` | — | `{html}` |
+| `read_html` | — | `{html, truncated}` |
 | `read_text` | `selector` | `{text}` |
-| `scroll` | `to` (`bottom`/`top`) | `{}` |
+| `scroll` | `to` (`top`/`bottom`) | `{}` |
 | `sleep` | `ms` (≤3000) | `{}` |
 
-Unknown verbs are rejected, never ignored.
+Unknown verbs and unknown parameter keys are rejected, never ignored. The
+closed schema lives in `src/scholar_search/core/params.py` and is used by both
+the kernel and the host.
 
 ## Validation layers
 
-1. **Extension** – action name must be in the compiled whitelist; parameters
-   are type-checked before touching the page.
-2. **Native host** – re-validates action, domain, parameter schema, message
-   size, and deadline. A request failing here never reaches the browser.
-3. **Kernel** – validates the whole plan before the first action: verb set,
-   domain allowlist, action count (≤40), estimated duration (≤120s).
-4. **Runtime** – interval floor, daily quota, cooldown state.
+1. **Kernel** – whole plan before the first action: verb set, manifest domains,
+   parameter schema, action count (≤40), duration (≤120s).
+2. **Host** – re-validates verb, parameter schema, deadline, domains supplied
+   with the request, and frame size. A request failing here never reaches the
+   browser.
+3. **Extension** – only the nine verbs; parameters arrive already validated.
+
+## Risk signals
+
+Every action result carries a risk snapshot from the content script:
+`captcha_visible` (visible, non-zero-size captcha element intersecting the
+viewport), `auth_required` (visible login gate), `title`, `url`, `status`.
+
+`goto` additionally reports the final URL after redirects and the page's HTTP
+status; a `status >= 400` becomes an action failure (`HTTP <code>`), and the
+kernel maps `403` to a risk stop.
 
 ## Error codes
 
@@ -51,23 +89,21 @@ Unknown verbs are rejected, never ignored.
 | `policy.verb` | verb not allowed |
 | `policy.domain` | host not in the channel allowlist |
 | `policy.params` | parameter schema violation |
-| `policy.rate` | interval or quota exceeded |
-| `risk.captcha` | captcha detected; plan aborted |
-| `risk.verify` | redirected to `/verify/home` |
-| `risk.http403` | forbidden response |
-| `bridge.timeout` | no response within deadline |
+| `policy.deadline` | timeout outside 1..15000 ms |
+| `bridge.timeout` | no reply within the deadline (including handshake) |
 | `bridge.closed` | host or browser went away |
+| `HTTP 403` | forbidden response reported by the page |
 
-`risk.*` errors are terminal for the session: the kernel sets a cooldown and
-refuses further plans until `scholar-search reset --confirm`.
+Risk stops are terminal: the kernel writes a 24h cooldown and refuses further
+plans until `scholar-search reset --confirm`.
 
-## Size and time limits
+## Size limits
 
-- message ≤ 2 MiB (HTML pages are truncated with a marker if larger);
-- per-action deadline ≤ 15s, whole plan ≤ 120s;
-- `read_html` returns a single document, never a tab dump.
+- each frame ≤ 2 MiB; `write_frame` refuses to emit more;
+- `read_html` truncates by UTF-8 bytes (1 MB) and sets `truncated: true`;
+- per-action deadline ≤ 15s, whole plan ≤ 120s.
 
 ## Versioning
 
-The host and extension exchange `protocol_version` at handshake. A mismatch is
-a hard failure: refusing to run is safer than guessing.
+`protocol` is exchanged in the handshake. A host that does not receive
+`hello_ack` with the same version does not send actions.

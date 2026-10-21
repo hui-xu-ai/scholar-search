@@ -19,8 +19,8 @@ def test_policy_accepts_allowed_goto() -> None:
 def test_policy_rejects_http_and_foreign_host() -> None:
     insecure = {"action": "goto", "params": {"url": "http://kns.cnki.net/"}}
     foreign = {"action": "goto", "params": {"url": "https://evil.test/"}}
-    assert validate_request(insecure) == "policy.url_scheme"
-    assert validate_request(foreign) == "policy.domain"
+    assert validate_request(insecure, ("kns.cnki.net",)) == "policy.url_scheme"
+    assert validate_request(foreign, ("kns.cnki.net",)) == "policy.domain"
 
 
 def test_policy_rejects_unknown_verb() -> None:
@@ -64,6 +64,7 @@ def test_adapter_roundtrip(tmp_path: Path) -> None:
                     connection.sendall(b'{"ok":true}\n')
                     continue
                 reply = {
+                    "id": request["id"],
                     "ok": True,
                     "data": {"html": "<html/>"},
                     "url": "https://kns.cnki.net/x",
