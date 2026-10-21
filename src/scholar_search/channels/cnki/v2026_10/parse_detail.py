@@ -21,17 +21,26 @@ _YEAR = re.compile(r"(19|20)\d{2}")
 _AFFILIATION_MARK = re.compile(r"[\d,，\s]+$")
 _TIME_KEYS = ("在线公开时间", "网络出版时间", "出版时间", "发表时间")
 
-_DOC_MARKERS = (
-    ("博士学位论文", "thesis"),
-    ("硕士学位论文", "thesis"),
-    ("硕士", "thesis"),
-    ("博士", "thesis"),
-    ("会议", "conference"),
-    ("报纸", "newspaper"),
-    ("图书", "book"),
-    ("专利", "patent"),
-    ("标准", "standard"),
-)
+_DOC_TYPES = {
+    "期刊": "journal",
+    "期刊论文": "journal",
+    "学术期刊": "journal",
+    "博士学位论文": "thesis",
+    "硕士学位论文": "thesis",
+    "学位论文": "thesis",
+    "硕士": "thesis",
+    "博士": "thesis",
+    "会议论文": "conference",
+    "会议": "conference",
+    "报纸": "newspaper",
+    "图书": "book",
+    "专著": "book",
+    "专利": "patent",
+    "标准": "standard",
+    "年鉴": "yearbook",
+    "成果": "achievement",
+}
+_TYPE_LABELS = frozenset({"文献类型", "文献类别", "资源类型", "类型"})
 
 # Print issues put the citation line in ``.top-first``:
 #   力学学报 . 2022 ,54 (01) : 184-195 查看该刊数据库收录来源
@@ -96,19 +105,36 @@ def _source(soup: BeautifulSoup) -> tuple[str | None, str]:
     return source, value
 
 
-# Only the article metadata header may declare a type. The body, abstract and
-# "related recommendations" routinely mention "博士学位论文" or "会议"; scanning
-# the whole page would let unrelated words re-type the current article.
-_META_REGIONS = (".top-first", ".doc-top", ".top-tip", "li.top-space")
+def _type_value(text: str) -> str | None:
+    """Accept a complete type value, optionally prefixed by its field label.
+
+    Wrappers such as ``《期刊》`` and publication-status suffixes such as
+    ``（网络首发）`` describe the same type; strip them before the exact lookup.
+    """
+
+    value = "".join(text.split()).replace("：", ":")
+    label, separator, content = value.partition(":")
+    if separator:
+        if label not in _TYPE_LABELS:
+            return None
+        value = content
+    for mark in "《》〈〉":
+        value = value.replace(mark, "")
+    for word in ("网络首发", "优先出版", "网络出版", "附视频"):
+        value = value.replace(word, "")
+    return _DOC_TYPES.get(value.strip("()（）"))
 
 
 def _document_type(soup: BeautifulSoup) -> str | None:
-    for selector in _META_REGIONS:
+    # A labelled type field outranks a compact header. Funding, subjects and
+    # source names are not type fields, even when they contain type words.
+    for label, value in _rows(soup).items():
+        if label in _TYPE_LABELS and (token := _type_value(value)) is not None:
+            return token
+    for selector in (".doc-top", ".top-tip", ".top-first"):
         for node in soup.select(selector):
-            text = node.get_text(" ", strip=True)
-            for marker, token in _DOC_MARKERS:
-                if marker in text:
-                    return token
+            if (token := _type_value(node.get_text(" ", strip=True))) is not None:
+                return token
     return None
 
 
@@ -170,4 +196,3 @@ def parse(html: str, url: str) -> Record:
         url=url,
         doc_type=doc_type,
     )
-

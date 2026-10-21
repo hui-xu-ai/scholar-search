@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.6] - 2026-10-21
+
+### Fixed
+
+- Read detail document types from complete type values or explicitly labelled
+  type fields. Funding, subjects and source names cannot supply a document type;
+  explicit online-first journal metadata is retained.
+- Reserve two seconds between CNKI search content waits and their outer action
+  deadlines, allowing a timeout response and its risk snapshot to reach the kernel.
+- Add synthetic online-first metadata fixtures and regression coverage for all
+  supported query/page/sort/page-size combinations. Live verification is pending.
+- Accept wrapped (`《期刊》`) and status-suffixed (`期刊（网络首发）`) type values, and
+  scan `.top-first` with the same exact-value rule, so explicit types are not lost
+  to page decoration. Body/recommendation text still cannot supply a type.
+
 ## [0.3.5] - 2026-10-21
 
 ### Fixed
@@ -257,6 +272,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 

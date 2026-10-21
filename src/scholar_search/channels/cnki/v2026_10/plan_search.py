@@ -6,9 +6,8 @@ Two entry points exist on the site:
 * expert search (field expressions such as ``SU='IPMC' and KY='驱动器'``) —
   reached through ``AdvSearch?type=expert`` and a textarea.
 
-Year filters use the result page's own controls (``#txtStartYear`` /
-``#txtEndYear`` / ``#btnFilterYear``); they narrow the current result set
-instead of issuing a new query.
+Year filters are applied by the service to the returned page, without sending
+additional browser actions.
 
 Pagination is a client-side page turn (``#PageNext``), so page N costs N-1
 extra clicks. The kernel's page-per-call limit keeps that bounded.
@@ -37,6 +36,7 @@ INPUT_TIMEOUT_MS = 3_000
 CLICK_TIMEOUT_MS = 3_000
 READ_TIMEOUT_MS = 10_000
 FILTER_WAIT_MS = 8_000
+WAIT_REPLY_MARGIN_MS = 2_000
 
 
 def is_expression(text: str) -> bool:
@@ -54,7 +54,7 @@ def _pagination(query: SearchQuery) -> tuple[Action, ...]:
             Action(
                 "wait_for",
                 {"selector": SEARCH_READY, "timeout_ms": FILTER_WAIT_MS},
-                timeout_ms=FILTER_WAIT_MS,
+                timeout_ms=FILTER_WAIT_MS + WAIT_REPLY_MARGIN_MS,
             )
         )
     return tuple(actions)
@@ -74,7 +74,7 @@ def _sort(query: SearchQuery) -> tuple[Action, ...]:
         Action(
             "wait_for",
             {"selector": SEARCH_READY, "timeout_ms": FILTER_WAIT_MS},
-            timeout_ms=FILTER_WAIT_MS,
+            timeout_ms=FILTER_WAIT_MS + WAIT_REPLY_MARGIN_MS,
         ),
     )
 
@@ -107,7 +107,7 @@ def build(query: SearchQuery) -> Plan:
             Action(
                 "wait_for",
                 {"selector": EXPERT["input"], "timeout_ms": WAIT_TIMEOUT_MS},
-                timeout_ms=WAIT_TIMEOUT_MS,
+                timeout_ms=WAIT_TIMEOUT_MS + WAIT_REPLY_MARGIN_MS,
             ),
             Action(
                 "type",
@@ -127,7 +127,7 @@ def build(query: SearchQuery) -> Plan:
             Action(
                 "wait_for",
                 {"selector": SEARCH["input"], "timeout_ms": WAIT_TIMEOUT_MS},
-                timeout_ms=WAIT_TIMEOUT_MS,
+                timeout_ms=WAIT_TIMEOUT_MS + WAIT_REPLY_MARGIN_MS,
             ),
             Action(
                 "type",
@@ -146,7 +146,7 @@ def build(query: SearchQuery) -> Plan:
         Action(
             "wait_for",
             {"selector": SEARCH_READY, "timeout_ms": WAIT_TIMEOUT_MS},
-            timeout_ms=WAIT_TIMEOUT_MS,
+            timeout_ms=WAIT_TIMEOUT_MS + WAIT_REPLY_MARGIN_MS,
         ),
         *_sort(query),
         *_page_size(query),
