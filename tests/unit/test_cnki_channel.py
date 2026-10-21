@@ -262,6 +262,26 @@ def test_parse_search_keeps_document_type() -> None:
     ]
 
 
+def test_parse_search_normalises_prefixed_document_types() -> None:
+    html = """
+    <html><body>
+      <div class="pagerTitleCell">共找到 3 条结果</div>
+      <div class="countPageMark">1/1</div>
+      <table class="result-table-list"><tbody>
+        <tr><td class="name"><a class="fz14" href="/kcms2/article/abstract?v=b1">图书</a></td>
+            <td class="data">中文图书</td></tr>
+        <tr><td class="name"><a class="fz14" href="/kcms2/article/abstract?v=j2">期刊</a></td>
+            <td class="data">外文期刊</td></tr>
+        <tr><td class="name"><a class="fz14" href="/kcms2/article/abstract?v=u3">未知</a></td>
+            <td class="data">法律法规</td></tr>
+      </tbody></table>
+    </body></html>
+    """
+    page = get_channel().parse_search(html, query=SearchQuery(text="x"))
+
+    assert [record.doc_type for record in page.records] == ["book", "journal", None]
+
+
 def test_detail_plan_wait_stays_below_action_budget() -> None:
     from scholar_search.channels.cnki.v2026_10 import plan_detail
 

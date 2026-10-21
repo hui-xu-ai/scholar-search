@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.16] - 2026-10-21
+
+### Fixed
+
+- Document types are normalised in one place. The result grid labels some rows
+  「中文图书」/「外文期刊」, and the old fallback (`token.casefold()`) pushed that raw
+  Chinese string into `doc_type`, where the export mapping could not recognise it and
+  RIS fell back to `GEN` — a book exported as generic. `parse_search` and
+  `parse_detail` now share `channels/cnki/v2026_10/doc_types.py`, which strips language
+  prefixes, wrappers （《期刊》, （网络首发）） and the 文献类型 label, and returns
+  `None` for a type it cannot map so the export renders generic with a note instead of a
+  meaningless value.
+
 ## [0.3.15] - 2026-10-21
 
 ### Fixed

@@ -8,24 +8,10 @@ from bs4 import BeautifulSoup, Tag
 
 from ....core.contracts import Record, SearchPage, SearchQuery
 from ....core.errors import ParseError
+from . import doc_types
 from .selectors import SEARCH
 
 _TOTAL = re.compile(r"([\d,]+)")
-
-# td.data carries the document type; keep a canonical token for export.
-_DOC_TYPES = {
-    "期刊": "journal",
-    "硕士": "thesis",
-    "博士": "thesis",
-    "会议": "conference",
-    "报纸": "newspaper",
-    "图书": "book",
-    "专著": "book",
-    "专利": "patent",
-    "标准": "standard",
-    "年鉴": "yearbook",
-    "成果": "achievement",
-}
 _PAGE = re.compile(r"(\d+)\s*/\s*(\d+)")
 
 
@@ -79,10 +65,7 @@ def _record(row: Tag) -> Record | None:
 
 
 def _doc_type(raw: str | None) -> str | None:
-    if not raw:
-        return None
-    token = raw.strip()
-    return _DOC_TYPES.get(token, token.casefold())
+    return doc_types.normalize(raw)
 
 
 def _node_text(soup: BeautifulSoup, selector: str) -> str:
