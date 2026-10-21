@@ -139,6 +139,7 @@ stdio server 是子进程，不重启不会换代码。
 | `status` 正常但检索报 `content_not_ready` | 浏览器停在错误页（多半是代理换证） | 看窗口标题；把 `cnki.net` 加进代理直连规则，或加进 `ProxyOverride` |
 | 动作报 `bridge.timeout` | 窗口不在前台导致定时器节流，或标签页状态坏 | 切前台、只留一个窗口一个标签页；仍不行关掉 CNKI 标签页重来 |
 | `blocked` + `cooldown_until` | 触发了风控 | **停止**。让用户人工在浏览器完成验证，再 `scholar-search reset --confirm`。禁止重试 |
+| **全新浏览器环境第一次检索就 `blocked`（`verify_redirect`）** | 新 profile 没有 Cookie 与历史，知网要求人工验证；属预期行为 | 让用户在该窗口完成滑块验证 → `scholar-search reset --confirm` → 再跑一次。**不要**直接 reset 后立刻重试，reset 前必须确认验证已通过 |
 | 配额用尽 | 当日 300 次用完 | 等次日自动重置，不要改 `quota.json` |
 
 ## 不要做

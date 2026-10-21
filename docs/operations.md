@@ -131,6 +131,7 @@ scholar-search --version
 | `sleep` / `type` 报 `bridge.timeout`，`duration_ms` 贴着超时值 | 窗口是否在前台、是否只有一个可见窗口 | 把 CNKI 窗口切前台；0.3.15 起暂停已带 2s 余量，仍超时说明节流更狠 |
 | `goto` 15s 超时 | 是否长期复用同一个 CNKI 标签页 | 关掉所有 CNKI 标签页或重启浏览器 |
 | `blocked` + `cooldown_until` | `audit.jsonl` 里的 `signal` | 人工在浏览器完成验证，再 `reset --confirm`；**不要**重试 |
+| 新浏览器环境第一次检索就 `blocked`（`verify_redirect`） | 新 profile 无 Cookie/历史，站点要求人工验证 | 属预期；按上一条处理后重试一次，见 [浏览器环境](browser-setup.md#61-全新环境第一次访问几乎一定会遇到安全验证) |
 | `policy.params` | 参数是否越界（page>3、limit>50、未知动词） | 按提示改参数 |
 | `ParseError` | 页面结构是否变了 | 见 [知网改版应对](cnki-maintenance.md) |
 | 配额用尽 | `quota.json` 的 `day` 字段 | 等次日自动重置；不要改计数绕过 |
