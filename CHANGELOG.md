@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.12] - 2026-10-21
+
+### Fixed
+
+- Returned `page` now reflects the page that was actually requested, even when the
+  site's own pager marker lags behind the AJAX turn.
+- The 50-per-page switch waits 2.5 s for the grid to rebuild; a fast read returned the
+  previous 20-row page.
+- CNKI dissertation DOIs (`/d.cnki.`) mark a detail record as `thesis` when no explicit
+  type field is present; live verification now exports `THES`/`Thesis`.
+
 ## [0.3.11] - 2026-10-21
 
 ### Changed
@@ -328,6 +339,7 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 
 

@@ -94,11 +94,11 @@ class ScholarService:
             )
         if len(records) > query.limit:
             records = records[: query.limit]
-        if records is not page.records:
+        if records is not page.records or page.page != query.page:
             page = SearchPage(
                 records=records,
                 total=page.total,
-                page=page.page,
+                page=query.page,
                 page_count=page.page_count,
             )
         self._cache.set(key, _page_to(page))
@@ -228,3 +228,4 @@ def _html(outcomes: Sequence[ActionOutcome]) -> str:
         if isinstance(value, str):
             return value
     raise ParseError("plan produced no html payload")
+

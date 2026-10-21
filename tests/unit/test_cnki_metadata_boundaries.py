@@ -80,3 +80,15 @@ def test_decorated_type_values_keep_their_type(value: str, expected: str) -> Non
         f'<div class="doc-top">{value}</div>',
     )
     assert parse_detail.parse(html, URL).doc_type == expected
+
+
+def test_dissertation_doi_marks_thesis() -> None:
+    html = (
+        '<html><body><div class="wx-tit"><h1>某学位论文</h1></div>'
+        '<div class="top-first">某大学 . 2024</div>'
+        '<ul><li class="top-space"><span class="rowtit">DOI：</span>'
+        "<p>10.27300/d.cnki.gx.2024.000001</p></li></ul>"
+        '<div id="ChDivSummary">摘要</div></body></html>'
+    )
+    record = parse_detail.parse(html, "https://kns.cnki.net/kcms2/article/abstract?v=x")
+    assert record.doc_type == "thesis"

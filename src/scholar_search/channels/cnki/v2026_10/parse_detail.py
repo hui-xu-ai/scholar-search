@@ -180,6 +180,10 @@ def parse(html: str, url: str) -> Record:
         # article-level structural evidence, not body text.
         doc_type = "journal"
 
+    if doc_type is None and doi and "/d.cnki." in doi.casefold():
+        # CNKI dissertation DOIs use the /d.cnki. namespace.
+        doc_type = "thesis"
+
     keywords = [
         link.get_text(strip=True).strip(";；,，、")
         for link in soup.select("p.keywords a")
@@ -202,3 +206,4 @@ def parse(html: str, url: str) -> Record:
         url=url,
         doc_type=doc_type,
     )
+

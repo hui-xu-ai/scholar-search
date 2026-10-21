@@ -93,7 +93,12 @@ def _page_size(query: SearchQuery) -> tuple[Action, ...]:
         Action("click", {"selector": SEARCH["page_size_open"]}, timeout_ms=CLICK_TIMEOUT_MS),
         Action("sleep", {"ms": 400}, timeout_ms=2_000),
         Action("click", {"selector": SEARCH["page_size_50"]}, timeout_ms=CLICK_TIMEOUT_MS),
-        Action("sleep", {"ms": 1200}, timeout_ms=2_000),
+        Action("sleep", {"ms": 2500}, timeout_ms=3_000),
+        Action(
+            "wait_for",
+            {"selector": SEARCH_READY, "timeout_ms": 6_000},
+            timeout_ms=8_000,
+        ),
     )
 
 
@@ -159,3 +164,5 @@ def build(query: SearchQuery) -> Plan:
         Action("read_html", timeout_ms=READ_TIMEOUT_MS),
     )
     return Plan(channel="cnki", purpose="search", actions=actions)
+
+
