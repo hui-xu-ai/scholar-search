@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.3.4] - 2026-10-21
+
+### Fixed
+
+- **CSP** Clicks on CNKI's `<a href="javascript:void(0);">` pagination/sort links are
+  cancelled at the default-action stage, so the page CSP no longer blocks a
+  `javascript:` navigation while the site's own click handlers still run. Plain
+  links and inputs are clicked as before.
+
 ## [0.3.3] - 2026-10-21
 
 ### Fixed
@@ -238,5 +247,6 @@ accepted now fail loudly.
 - ADRs 0001-0004: microkernel, read-only, native bridge, risk stop.
 - JSON schemas for records and MCP tools.
 - CNKI channel manifest (site version 2026.10), implementation pending.
+
 
 

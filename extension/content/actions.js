@@ -121,6 +121,35 @@ function riskPresent() {
   return snapshot.captcha_visible || snapshot.auth_required;
 }
 
+function hrefOf(element) {
+  try {
+    return typeof element.getAttribute === "function" ? element.getAttribute("href") : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// CNKI uses <a href="javascript:void(0);"> for paging and sorting. Calling
+// click() runs that javascript: URL, which the page CSP blocks. Cancel only the
+// default navigation for this one synthetic activation; the site's own click
+// handlers still run.
+function clickElement(element) {
+  const href = hrefOf(element);
+  const jsHref = typeof href === "string" && href.trim().toLowerCase().startsWith("javascript:");
+  if (!jsHref || typeof element.addEventListener !== "function") {
+    element.click();
+    return;
+  }
+
+  const guard = (event) => event.preventDefault();
+  element.addEventListener("click", guard, true);
+  try {
+    element.click();
+  } finally {
+    element.removeEventListener("click", guard, true);
+  }
+}
+
 async function run(action, params) {
   let result;
   switch (action) {
@@ -151,7 +180,7 @@ async function run(action, params) {
         result = { ok: false, error: "not_found" };
         break;
       }
-      element.click();
+      clickElement(element);
       result = { ok: true, data: {} };
       break;
     }
@@ -218,3 +247,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch((error) => sendResponse({ ok: false, error: String(error), data: riskSnapshot() }));
   return true;
 });
+
