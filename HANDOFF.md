@@ -52,9 +52,9 @@
    宿主从 0.3.15 目录起来（`host.log` 里 `cwd=...0.3.15\browser\native-host`）。
 8. `Scripts\scholar-search.cmd` 仍是一行 `python.exe -m scholar_search.cli %*`，没有复制旧 exe。
 
-**还有一处没生效**：DSH 当前这个会话的 MCP 服务进程是部署前启动的，模块已经导入，
-仍跑 0.3.13 的计划代码（`mcp__scholar-search__status` 正常，但 `sleep` 没有余量）。
-**重启 DSH 之后才会用 0.3.15。**
+9. 重启 DSH。重启后 MCP 服务进程换成
+   `installations\0.3.15\venv\Scripts\python.exe`，官方 `mcp__scholar-search__*`
+   链路才用上 0.3.15 的计划代码（已验证：进程路径、`status`、一次真实 `search`）。
 
 
 ## 3. 已真机验证（2026-10-21）
@@ -75,6 +75,10 @@
 - **部署后复验（走安装目录，不用仓库源码）**：`石墨烯`、`limit=5` → 9.6 秒，
   `total=111875`，5 条记录，配额 101→98。用的是
   `installations\0.3.15\venv\Scripts\python.exe`，证明部署树本身可用。
+- **重启 DSH 后走官方 MCP 链路**：`mcp__scholar-search__search`
+  （`钙钛矿太阳能电池`、`limit=3`）→ `total=11820`，3 条记录，标题/作者/期刊正确。
+  审计里那次 `sleep` 耗时 **3145ms** 且成功——正是被节流的场景，
+  旧 3000ms 预算必挂，新 4500ms 预算通过，修复得到现场证明。
 
 ## 4. 关键路径
 
@@ -98,7 +102,7 @@
 
 ## 6. 当前配额与限制
 
-- 日期 `2026-10-21`，已用 202 / 300，剩余 **98**，无冷却。
+- 日期 `2026-10-21`，已用 206 / 300，剩余 **94**，无冷却。
 - 一次 `search` 记 **3** 个网络动作（`goto` + `type` + `click`）；`sleep`/`wait_for`/
   `read_html` 等读动词不占配额。
 - 每日 300 个网络动作（ADR 0005）。
@@ -128,6 +132,23 @@
 从旧安装目录复制 venv，`Scripts\scholar-search.exe` 仍指向更早版本（例如 0.3.13 目录里跑出 0.3.2）。
 0.3.13 已删除该 exe，改用 `Scripts\scholar-search.cmd`（`python -m scholar_search.cli`）。
 新部署时照做，或统一用 `python -m`。
+
+### Edge 报「隐私错误」`NET::ERR_CERT_COMMON_NAME_INVALID`（2026-10-21 遇到）
+
+现象：`goto` 报 ok，紧跟的 `sleep`/`type` 报 `content_not_ready`，
+因为浏览器停在证书错误页，那上面没有内容脚本。
+
+原因：本机开着 Clash Verge（系统代理 `127.0.0.1:7897`，未开 TUN），Edge 走系统代理
+被中间换证，`kns.cnki.net` 证书名不匹配。PowerShell 的 `Invoke-WebRequest` 不走
+WinINET 注册表代理、直连 200，所以容易误判「站点没问题」。
+
+处理（已做）：把 `*.cnki.net;cnki.net` 加进
+`HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings` 的 `ProxyOverride`，
+再用 `InternetSetOption(NULL, 39/37, ...)` 广播变更，重载页面即恢复。
+回滚：把这两项从 `ProxyOverride` 删掉（原值末尾是 `<local>`）。
+更持久的做法是在 Clash 规则里给 `DOMAIN-SUFFIX,cnki.net` 配 `DIRECT`。
+
+判断口诀：`content_not_ready` 先看浏览器标题是不是错误页；证书类错误别重试，先修代理/证书。
 
 ### 页面状态导致 `goto` 超时
 
@@ -217,11 +238,10 @@ uv build --out-dir "$low\dist"    # 再 Copy-Item 回 dist\
       暂停动作加 2s 回包余量，并从读/等待超时里腾出预算。真机已通过（见第 3 节）。
 - [x] 升级线上到 0.3.15：安装目录、Codex、DSH bundle、HKCU 注册、宿主进程全部换好，
       部署后走安装目录真机复验通过（见第 2、3 节）。
-- [ ] **重启 DSH**，让 MCP 服务进程换到 0.3.15；重启后 `mcp__scholar-search__search`
-      才带暂停余量。重启前调用的仍是没有余量的旧代码。
+- [x] 重启 DSH，MCP 服务进程已换到 0.3.15（`installations\0.3.15\venv\Scripts\python.exe`），官方链路真机通过。
 - [ ] 观察 `sleep` / `type` 超时是否还会出现；出现就先看 `duration_ms` 是否贴超时、
       再确认 CNKI 窗口在前台且只有一个可见窗口
 - [ ] 配额跨天后确认 `quota.json` 的 `day` 字段自动重置
-- [ ] 复验时按第 8 节自测，注意配额（写本文件时 202/300，余 98；一次检索 = 3）
+- [ ] 复验时按第 8 节自测，注意配额（写本文件时 206/300，余 94；一次检索 = 3）
 - [ ] 0.3.13 与更早的安装目录已无用，可择日清理（`installations\0.3.2` … `0.3.13`）
 
