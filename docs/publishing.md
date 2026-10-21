@@ -78,6 +78,28 @@ git push origin v0.3.18               # 重新推，触发 release
 
 不需要（也不建议）把历史 tag 挨个重推，那会一次生成几十个 release。
 
+### 补 tag 但不想重新发版
+
+场景：手滑删掉了某个旧版本的 release（GitHub UI 里"删除 release"还有个"同时删除 tag"的勾选项，
+很容易一起删掉），想把 tag 补回来，但不希望再生成一个 release。
+
+直接 `git push origin v0.3.17` 会触发 `release.yml`，于是又造一个新 release。正确做法是先停工作流：
+
+```powershell
+# 1) 禁用 release 工作流（需要 token 有 actions:write）
+gh api -X PUT repos/<owner>/<repo>/actions/workflows/release.yml/disable
+
+# 2) 补 tag
+git push origin v0.3.17
+
+# 3) 确认没有新的 release 运行，再启用
+gh api -X PUT repos/<owner>/<repo>/actions/workflows/release.yml/enable
+```
+
+实测（2026-10-21）：补完 `v0.3.17` 后 tag 指向原提交，release 仍然只有 `v0.3.18` 一个。
+
+顺带一句：**tag 不占存储**，只删 release 就够了；每个 release 的产物才是空间大头。
+
 ## 4. 发布一个新版本（标准动作）
 
 ```powershell
