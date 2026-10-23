@@ -28,7 +28,7 @@ def _payload(error: Exception) -> dict[str, Any]:
 
 
 def build_server(service: ScholarService) -> FastMCP:
-    mcp = FastMCP("scholar-search")
+    mcp = FastMCP("wensu")
 
     @mcp.tool()
     def search(

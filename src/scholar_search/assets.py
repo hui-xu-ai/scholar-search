@@ -2,7 +2,7 @@
 
 The wheel and sdist carry the native host sources, the extension and the JSON
 schemas so a user who only installed the package can still complete the
-documented setup. ``scholar-search assets --target DIR`` copies them out.
+documented setup. ``wensu assets --target DIR`` copies them out.
 """
 
 from __future__ import annotations

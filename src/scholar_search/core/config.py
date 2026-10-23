@@ -10,6 +10,9 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+# Runtime state keeps the pre-0.4.0 directory name on purpose: renaming it would
+# orphan quota, cooldown and audit state for everyone upgrading. Only the
+# distribution name changed in 0.4.0.
 APP_NAME = "scholar-search"
 ENV_HOME = "SCHOLAR_SEARCH_HOME"
 

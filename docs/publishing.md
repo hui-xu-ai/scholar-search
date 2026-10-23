@@ -1,7 +1,7 @@
 # 发布到 GitHub
 
-仓库目前**没有配置远程**，所有 tag 只在本地。本文是从"本地仓库"到"GitHub 上有 release"的
-完整操作，以及发布前的检查清单。
+仓库远程是 `origin` → `github.com/hui-xu-ai/wensu`（0.4.0 起；旧地址 `scholar-search` 会 301
+到新仓库）。本文是发布前检查与发版的标准动作。
 
 ## 1. 发布前检查
 
@@ -32,11 +32,11 @@ Select-String -Path extension\manifest.json -Pattern '"version"'
 - 没有任何真实 Cookie、账号、会话参数、个人检索记录混进 `tests/fixtures/`；
 - `README.md` 里的版本号与 `pyproject.toml` 一致。
 
-## 2. 首次推送
+## 2. 推送
 
 ```powershell
-git remote add origin git@github.com:<你的账号>/wensu.git
-git branch -M main
+# 仓库改过名时，先把远程指到新地址（GitHub 会 301 旧地址，但不要依赖它）
+git remote set-url origin git@github.com:<你的账号>/wensu.git
 git push -u origin main
 git push origin --tags
 ```
