@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Wensu plugins",
+    "zh": "文溯插件"
+  },
+  "description": {
+    "en": "DeepSeek Harness bundles published by hui-xu-ai.",
+    "zh": "hui-xu-ai 发布的 DeepSeek Harness 组合包。"
+  },
+  "metadata": {
+    "categories": {
+      "literature": {
+        "title": {
+          "en": "Literature",
+          "zh": "文献检索"
+        }
+      }
+    },
+    "labels": {
+      "cnki": {
+        "title": {
+          "en": "CNKI",
+          "zh": "知网"
+        }
+      }
+    },
+    "sortKeys": {
+      "published": {
+        "title": {
+          "en": "Published",
+          "zh": "发布时间"
+        },
+        "order": "desc"
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@hui-xu-ai/dsh-wensu",
+      "title": {
+        "en": "Wensu · CNKI literature search",
+        "zh": "文溯 · 知网文献检索"
+      },
+      "description": {
+        "en": "Read-only Chinese bibliographic search over CNKI, exposed to the agent as MCP tools (search, detail, export, status).",
+        "zh": "只读的中文文献题录检索（知网渠道），以 MCP 工具接入 agent：search / detail / export / status。"
+      },
+      "icon": "icons/wensu.svg",
+      "author": "hui-xu-ai",
+      "homepage": "https://github.com/hui-xu-ai/wensu",
+      "repository": {
+        "url": "https://github.com/hui-xu-ai/wensu",
+        "directory": "dsh-bundle"
+      },
+      "metadata": {
+        "category": "literature",
+        "labels": [
+          "cnki"
+        ],
+        "keywords": [
+          "cnki",
+          "知网",
+          "文献检索",
+          "题录",
+          "mcp",
+          "literature-search"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.4.0",
+          "publishTimestamp": 1792773418,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-rc.2"
+          }
+        }
+      ]
+    }
+  ]
+}

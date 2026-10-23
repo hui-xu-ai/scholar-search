@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="wensu">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f6feb"/>
+      <stop offset="1" stop-color="#0b3d91"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <path d="M22 88c14-16 26-16 42 0s26 16 42 0" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="7" stroke-linecap="round"/>
+  <path d="M22 102c14-16 26-16 42 0s26 16 42 0" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="5" stroke-linecap="round"/>
+  <text x="64" y="66" font-family="Microsoft YaHei, Segoe UI, sans-serif" font-size="42" font-weight="600" fill="#ffffff" text-anchor="middle">溯</text>
+</svg>
