@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish (for example v0.4.0)"
+        required: true
 
 permissions:
   contents: write
@@ -13,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -25,18 +32,43 @@ jobs:
         run: python -m build
 
       - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           python - <<'PY'
-          import pathlib, re, sys
-          tag = "${{ github.ref_name }}".lstrip("v")
+          import os, pathlib, re, sys
+          tag = os.environ["RELEASE_TAG"].lstrip("v")
           text = pathlib.Path("src/scholar_search/__init__.py").read_text(encoding="utf-8")
           version = re.search(r'__version__ = "([^"]+)"', text).group(1)
           print("tag", tag, "version", version)
           sys.exit(0 if tag == version else 1)
           PY
 
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
       - name: Create release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           generate_release_notes: true
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/wensu
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
