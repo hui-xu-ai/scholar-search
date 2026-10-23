@@ -1,0 +1,26 @@
+# wensu (文溯) MCP for DeepSeek Harness
+#
+# Install this bundle through DSH's plugin manager; do not paste this row into
+# the profile's cordis.patch.yml by hand.
+#
+# Tools appear as mcp__wensu__search / detail / export / status.
+#
+# `wensu` must be on PATH for the DSH process (pip install wensu). To pin a
+# specific environment instead, point `command` at that venv's
+# Scripts\wensu.exe. Runtime state stays in %LOCALAPPDATA%\scholar-search.
+
+- insert:
+    # Row id kept from the 0.3.x bundle so reinstalling replaces the old row
+    # instead of adding a second MCP server.
+    - id: mcp-scholar-search
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: wensu
+        transport: stdio
+        command: wensu
+        args:
+          - 'serve'
+          - '--transport'
+          - 'stdio'
+        failOnStartupError: false
+        toolCallTimeoutMs: 180000
