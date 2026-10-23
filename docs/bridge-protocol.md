@@ -95,7 +95,7 @@ kernel maps `403` to a risk stop.
 | `HTTP 403` | forbidden response reported by the page |
 
 Risk stops are terminal: the kernel writes a 24h cooldown and refuses further
-plans until `scholar-search reset --confirm`.
+plans until `wensu reset --confirm`.
 
 ## Size limits
 

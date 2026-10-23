@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-23
+
+### Changed
+
+- Distribution renamed from `scholar-search` to `wensu` (文溯). The old name is taken on PyPI
+  by an unrelated package, so `pip install scholar-search` would install someone else's code.
+- The command is now `wensu`; `scholar-search` remains as a compatibility alias, so MCP client
+  configs written before this release keep working.
+- The Python module (`scholar_search`), the runtime directory
+  (`%LOCALAPPDATA%\scholar-search`) and `SCHOLAR_SEARCH_HOME` are unchanged, so upgrades keep
+  quota, cooldown and audit state.
+- Repository and documentation links point at `github.com/hui-xu-ai/wensu`.
+
 ## [0.3.19] - 2026-10-21
 
 ### Changed

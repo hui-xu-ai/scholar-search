@@ -7,8 +7,8 @@ Two transports are supported. Both expose the same five tools.
 ```jsonc
 {
   "mcpServers": {
-    "scholar-search": {
-      "command": "scholar-search",
+    "wensu": {
+      "command": "wensu",
       "args": ["serve", "--transport", "stdio"]
     }
   }
@@ -20,7 +20,7 @@ Two transports are supported. Both expose the same five tools.
 Start the server locally:
 
 ```bash
-scholar-search serve --transport http --host 127.0.0.1 --port 8765
+wensu serve --transport http --host 127.0.0.1 --port 8765
 ```
 
 On first start a random token is written to

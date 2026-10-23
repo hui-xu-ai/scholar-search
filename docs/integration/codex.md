@@ -1,6 +1,6 @@
 # Codex / MCP 客户端接入
 
-本文件说明如何把 scholar-search 作为 MCP 服务接入 Codex 类客户端。目标是最小权限、
+本文件说明如何把 wensu（文溯）作为 MCP 服务接入 Codex 类客户端。目标是最小权限、
 显式工具发现、无 MCP 时停止，而不是绕过风控或改用脚本直连站点。
 
 ## 1. 安装
@@ -14,13 +14,15 @@ pip install -e ".[dev]"
 发行包安装：
 
 ```bash
-pip install scholar_search-<版本>-py3-none-any.whl
+pip install wensu
+# 离线时用 Releases 里的 wheel：
+pip install .\wensu-<版本>-py3-none-any.whl
 ```
 
 发行包自带浏览器资源。安装后先导出：
 
 ```powershell
-scholar-search assets --target .\browser
+wensu assets --target .\browser
 pwsh .\browser\native-host\install.ps1
 ```
 
@@ -28,28 +30,41 @@ pwsh .\browser\native-host\install.ps1
 
 ## 2. MCP 配置模板
 
-stdio（推荐）：
+stdio（推荐）。**Codex 用 `~/.codex/config.toml`，不是 JSON**：
+
+```toml
+[mcp_servers.wensu]
+command = "wensu"
+args = ["serve", "--transport", "stdio"]
+```
+
+其他客户端（Claude Desktop、Cursor 等）用 JSON：
 
 ```json
 {
   "mcpServers": {
-    "scholar-search": {
-      "command": "scholar-search",
-      "args": ["serve", "--transport", "stdio"],
-      "env": {
-        "SCHOLAR_SEARCH_HOME": "%LOCALAPPDATA%\\scholar-search"
-      }
+    "wensu": {
+      "command": "wensu",
+      "args": ["serve", "--transport", "stdio"]
     }
   }
 }
 ```
 
-HTTP（仅本机，需 bearer token）：
+HTTP（仅本机，需 bearer token）。Codex：
+
+```toml
+[mcp_servers.wensu]
+url = "http://127.0.0.1:8765/mcp"
+http_headers = { Authorization = "Bearer <token>" }
+```
+
+其他客户端：
 
 ```json
 {
   "mcpServers": {
-    "scholar-search": {
+    "wensu": {
       "url": "http://127.0.0.1:8765/mcp",
       "headers": { "Authorization": "Bearer <token>" }
     }

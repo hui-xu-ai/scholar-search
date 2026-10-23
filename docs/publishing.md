@@ -15,7 +15,7 @@ git status --short
 git ls-files | Select-String -Pattern '^(dist/|\.venv/|tmp/)'     # 应为空
 
 # 三处版本号一致
-Select-String -Path pyproject.toml,src\scholar_search\__init__.py -Pattern '0\.3\.'
+Select-String -Path pyproject.toml,src\scholar_search\__init__.py -Pattern '0\.4\.'
 Select-String -Path NOTICE -Pattern '^Version:'
 Select-String -Path extension\manifest.json -Pattern '"version"'
 
@@ -35,7 +35,7 @@ Select-String -Path extension\manifest.json -Pattern '"version"'
 ## 2. 首次推送
 
 ```powershell
-git remote add origin git@github.com:<你的账号>/scholar-search.git
+git remote add origin git@github.com:<你的账号>/wensu.git
 git branch -M main
 git push -u origin main
 git push origin --tags
@@ -108,20 +108,20 @@ gh api -X PUT repos/<owner>/<repo>/actions/workflows/release.yml/enable
 
 # 2) 提交
 git add -A
-git commit -m "fix: <一句话> (0.3.18)"
+git commit -m "fix: <一句话> (0.4.0)"
 
 # 3) 构建并核对产物
 uv build
-python -c "import zipfile;print(zipfile.ZipFile('dist/scholar_search-0.3.18-py3-none-any.whl').namelist()[:3])"
+python -c "import zipfile;print(zipfile.ZipFile('dist/wensu-0.4.0-py3-none-any.whl').namelist()[:3])"
 
 # 4) 打 tag 并推送
-git tag -a v0.3.18 -m "scholar-search 0.3.18"
+git tag -a v0.4.0 -m "wensu 0.4.0"
 git push origin main
-git push origin v0.3.18
+git push origin v0.4.0
 ```
 
 推送 tag 后看 Actions 是否变绿；Release 里应出现
-`scholar_search-0.3.18-py3-none-any.whl` 与 `.tar.gz`。
+`wensu-0.4.0-py3-none-any.whl` 与 `.tar.gz`。
 
 ## 5. 分支保护与合并
 
@@ -135,13 +135,15 @@ git push origin v0.3.18
 
 ## 6. 要不要发 PyPI
 
-项目现在只出 GitHub Release 的 wheel，没有配 `pypi` 的 trusted publishing。要发 PyPI 的话：
+项目现在只出 GitHub Release 的 wheel，没有配 `pypi` 的 trusted publishing。0.4.0 起发行名是
+`wensu`（旧的 `scholar-search` 已被他人占用，不能再发）。要发 PyPI 的话：
 
-1. 在 `pyproject.toml` 里补 `[project.urls]` 与 classifiers（已有部分）；
+1. `[project.urls]` 与 classifiers 已补齐；
 2. 在 PyPI 上建项目并配置 trusted publisher 指向本仓库的 `release.yml`；
-3. 在 `release.yml` 里加一步 `pypa/gh-action-pypi-publish`。
+3. 在 `release.yml` 里加一步 `pypa/gh-action-pypi-publish`；
+4. 或本地直接 `uv build && uv publish`（需要 PyPI token）。
 
-没做这一步之前，用户安装靠 `pip install <wheel 路径>`，README 也是这么写的。
+没做这一步之前，用户安装靠 `pip install <wheel 路径>`。
 
 ## 7. 不要提交的东西
 

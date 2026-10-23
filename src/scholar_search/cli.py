@@ -17,10 +17,10 @@ from .core import config
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="scholar-search",
+        prog="wensu",
         description="Read-only scholarly metadata retrieval (microkernel + channels).",
     )
-    parser.add_argument("--version", action="version", version=f"scholar-search {__version__}")
+    parser.add_argument("--version", action="version", version=f"wensu {__version__}")
     sub = parser.add_subparsers(dest="command")
 
     serve = sub.add_parser("serve", help="run the MCP server")

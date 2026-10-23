@@ -57,7 +57,7 @@ pwsh .\browser\native-host\install.ps1 `
      -ExtensionId "你的新扩展ID"
 ```
 
-ID 不匹配的表现：扩展连不上宿主，`scholar-search status` 一直 `bridge_ready: false`，
+ID 不匹配的表现：扩展连不上宿主，`wensu status` 一直 `bridge_ready: false`，
 `host/logs/host.log` 里没有新的 `start`。
 
 ## 4. 注册原生宿主
@@ -84,7 +84,7 @@ pwsh "$env:LOCALAPPDATA\scholar-search\installations\$ver\browser\native-host\in
 ## 5. 验证
 
 ```powershell
-scholar-search status
+wensu status
 ```
 
 期望看到：
@@ -133,7 +133,7 @@ scholar-search status
 3. 显式清冷却：
 
 ```powershell
-scholar-search reset --confirm
+wensu reset --confirm
 ```
 
 4. 再跑一次检索。此时浏览器已带上站点 Cookie，通常不会再弹。

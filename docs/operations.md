@@ -6,7 +6,7 @@
 
 | 形态 | 适用 | 浏览器资源在哪 |
 |---|---|---|
-| `pip install scholar_search-<版本>-py3-none-any.whl` | 一般用户 | 用 `scholar-search assets --target <目录>` 导出 |
+| `pip install wensu`（离线用 `pip install .\wensu-<版本>-py3-none-any.whl`） | 一般用户 | 用 `wensu assets --target <目录>` 导出 |
 | `pip install -e ".[dev]"` | 改代码 | 仓库里的 `native-host/`、`extension/`、`schemas/` |
 | 部署树 `installations/<版本>/` | 多版本并存、给 MCP 客户端固定路径 | `installations/<版本>/browser/` |
 
@@ -47,7 +47,7 @@ MCP 客户端指向 `installations/<版本>/venv/Scripts/python.exe`，好处是
 $ver = '<版本>'
 $root = "$env:LOCALAPPDATA\scholar-search\installations\$ver"
 python -m venv "$root\venv"          # 或复制现有 venv 再替换 site-packages
-& "$root\venv\Scripts\python.exe" -m pip install .\dist\scholar_search-$ver-py3-none-any.whl
+& "$root\venv\Scripts\python.exe" -m pip install .\dist\wensu-$ver-py3-none-any.whl
 & "$root\venv\Scripts\python.exe" -m scholar_search.cli assets --target "$root\browser"
 
 # 2) 注册原生宿主（写清单 + HKCU 注册 + 低完整性标签）
@@ -62,9 +62,9 @@ $env:SCHOLAR_SEARCH_HOME = "$env:LOCALAPPDATA\scholar-search"
 不想用 `pip`，也可以直接用 wheel 解压覆盖 `site-packages`：
 
 ```powershell
-Expand-Archive .\dist\scholar_search-$ver-py3-none-any.whl -DestinationPath .\wheel
+Expand-Archive .\dist\wensu-$ver-py3-none-any.whl -DestinationPath .\wheel
 Copy-Item .\wheel\scholar_search "$root\venv\Lib\site-packages\" -Recurse -Force
-Copy-Item .\wheel\scholar_search-$ver.dist-info "$root\venv\Lib\site-packages\" -Recurse -Force
+Copy-Item .\wheel\wensu-$ver.dist-info "$root\venv\Lib\site-packages\" -Recurse -Force
 ```
 
 ## 4. 升级
@@ -78,8 +78,8 @@ Copy-Item "$env:LOCALAPPDATA\scholar-search\installations\$old" `
 
 # 2) 在新目录里换包
 $target = "$env:LOCALAPPDATA\scholar-search\installations\$new"
-Expand-Archive .\dist\scholar_search-$new-py3-none-any.whl -DestinationPath .\wheel-new
-Remove-Item "$target\venv\Lib\site-packages\scholar_search*" -Recurse -Force
+Expand-Archive .\dist\wensu-$new-py3-none-any.whl -DestinationPath .\wheel-new
+Remove-Item "$target\venv\Lib\site-packages\scholar_search*","$target\venv\Lib\site-packages\wensu-*" -Recurse -Force
 Copy-Item .\wheel-new\scholar_search* "$target\venv\Lib\site-packages\" -Recurse -Force
 
 # 3) 刷新浏览器资源并重注册宿主
@@ -114,12 +114,12 @@ pwsh "$target\browser\native-host\install.ps1" -Python "$target\venv\Scripts\pyt
 ## 6. 常用命令
 
 ```powershell
-scholar-search status                 # 渠道、剩余配额、冷却、桥接是否就绪
-scholar-search assets --target .\b --force
-scholar-search reset --confirm        # 人工完成验证后清除冷却（显式、不可撤销）
-scholar-search serve --transport stdio
-scholar-search serve --transport http --host 127.0.0.1 --port 8765
-scholar-search --version
+wensu status                 # 渠道、剩余配额、冷却、桥接是否就绪
+wensu assets --target .\b --force
+wensu reset --confirm        # 人工完成验证后清除冷却（显式、不可撤销）
+wensu serve --transport stdio
+wensu serve --transport http --host 127.0.0.1 --port 8765
+wensu --version
 ```
 
 ### 部署后的一次性真机自检

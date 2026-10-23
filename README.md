@@ -1,7 +1,10 @@
-# scholar-search · 学术检索
+# 文溯 · wensu
 
 只读的中文文献题录检索服务，以 MCP 工具的形式提供给 AI 客户端。微内核 + 渠道插件：
 知网是第一个渠道，万方、维普等以后按同一契约接入。
+
+> 发行名 **wensu**（中文名「文溯」）。命令是 `wensu`，旧的 `scholar-search` 保留为兼容别名；
+> Python 模块名仍是 `scholar_search`，运行期目录仍是 `%LOCALAPPDATA%\scholar-search`，老配置无需改动。
 
 > **独立项目，非官方**，与任何数据库运营方无隶属、合作或授权关系。
 
@@ -61,18 +64,20 @@ MCP 客户端 ──stdio / HTTP──▶ MCP server
 前置：Windows、Python 3.11+、Edge（或 Chrome）。浏览器侧目前只在 Windows 上提供。
 
 ```powershell
-# 1) 装包（从 Releases 下载 wheel，把 <版本> 换成实际版本号，或本地 uv build 生成）
-pip install .\scholar_search-<版本>-py3-none-any.whl
+# 1) 装包（已发布到 PyPI；离线时用 Releases 里的 wheel，把 <版本> 换成实际版本号）
+pip install wensu
+# 或
+pip install .\wensu-<版本>-py3-none-any.whl
 
 # 2) 导出浏览器侧资源并注册原生宿主
-scholar-search assets --target .\browser
+wensu assets --target .\browser
 pwsh .\browser\native-host\install.ps1
 
 # 3) 装扩展：edge://extensions → 开发者模式 → 加载解压缩的扩展 → 选 .\browser\extension
 #    扩展 ID 由 manifest 里的 key 固定，恒为 gmaimbocfjkolcpljeekjcomakipoaph
 
 # 4) 验证
-scholar-search status
+wensu status
 ```
 
 `status` 里 `bridge_ready: true` 就通了。
@@ -83,13 +88,13 @@ scholar-search status
 
 ## 接入 MCP 客户端
 
-stdio 方式（Claude Desktop、Codex、大多数客户端）：
+stdio 方式（Claude Desktop、Cursor 等用 JSON 配置的客户端；Codex 用 `config.toml`，见 [Codex 接入](docs/integration/codex.md)）：
 
 ```json
 {
   "mcpServers": {
-    "scholar-search": {
-      "command": "scholar-search",
+    "wensu": {
+      "command": "wensu",
       "args": ["serve", "--transport", "stdio"]
     }
   }
@@ -99,7 +104,7 @@ stdio 方式（Claude Desktop、Codex、大多数客户端）：
 HTTP 方式（本地回环 + 令牌）：
 
 ```bash
-scholar-search serve --transport http --host 127.0.0.1 --port 8765
+wensu serve --transport http --host 127.0.0.1 --port 8765
 ```
 
 令牌在首次启动时写入 `%LOCALAPPDATA%\scholar-search\http-token`，请求带
@@ -121,8 +126,8 @@ scholar-search serve --transport http --host 127.0.0.1 --port 8765
 ## 升级到新版本
 
 ```powershell
-pip install --upgrade .\dist\scholar_search-<新版>-py3-none-any.whl
-scholar-search assets --target .\browser --force
+pip install --upgrade .\dist\wensu-<新版>-py3-none-any.whl
+wensu assets --target .\browser --force
 pwsh .\browser\native-host\install.ps1 -Python <venv>\Scripts\python.exe
 # 重启 MCP 客户端，让它重新拉起 server 进程
 ```
@@ -138,7 +143,7 @@ pwsh .\browser\native-host\install.ps1 -Python <venv>\Scripts\python.exe
 
 ## 状态
 
-当前版本 **v0.3.18**（最新 release 见仓库 Releases 页）。真机验证过的能力（2026-10-21，知网 2026.10 版页面）：
+当前版本 **v0.4.0**（最新 release 见仓库 Releases 页）。真机验证过的能力（2026-10-21，知网 2026.10 版页面）：
 
 | 能力 | 状态 |
 |---|---|
@@ -189,7 +194,7 @@ if ($cur -notmatch 'cnki\.net') {
 
 新 profile 没有 Cookie 与访问历史，第一次检索多半会落到知网的「安全验证」页，工具会正确返回
 `blocked` 并上 24 小时冷却。这不是故障：在那个窗口里人工过验证，然后
-`scholar-search reset --confirm`，再检索一次。详见
+`wensu reset --confirm`，再检索一次。详见
 [浏览器环境](docs/browser-setup.md#61-全新环境第一次访问几乎一定会遇到安全验证)。
 
 ### 3. 窗口不在前台，定时器被节流

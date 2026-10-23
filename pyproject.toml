@@ -3,14 +3,24 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "scholar-search"
-version = "0.3.19"
-description = "学术检索：只读的学术题录检索微内核，渠道可插拔（知网为首个渠道）"
+name = "wensu"
+version = "0.4.0"
+description = "文溯 · 中文文献题录检索 MCP（只读，知网为首个渠道）"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "scholar-search contributors" }]
-keywords = ["mcp", "scholarly", "search", "retrieval", "metadata", "literature", "cnki"]
+authors = [{ name = "wensu contributors" }]
+keywords = [
+  "mcp",
+  "scholarly",
+  "search",
+  "retrieval",
+  "metadata",
+  "literature",
+  "cnki",
+  "paper-search",
+  "literature-search",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
@@ -31,7 +41,16 @@ dependencies = [
 dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.12", "mypy>=1.11", "pre-commit>=3.7"]
 
 [project.scripts]
+# `wensu` is the name used in docs and MCP client configs. `scholar-search`
+# stays as an alias so configs written before 0.4.0 keep working; the Python
+# module is still `scholar_search`.
+wensu = "scholar_search.cli:main"
 scholar-search = "scholar_search.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/hui-xu-ai/wensu"
+Repository = "https://github.com/hui-xu-ai/wensu"
+Issues = "https://github.com/hui-xu-ai/wensu/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/scholar_search"]

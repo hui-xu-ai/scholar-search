@@ -1,15 +1,15 @@
 ---
 name: scholar-install
-description: 在 Windows 上安装、升级或卸载 scholar-search（Python 包 + 原生消息宿主 + 浏览器扩展），并验证 MCP 桥接是否可用。当用户说"装上/升级/重装这个检索服务"，或 status 里 bridge_ready 为 false 时使用。
+description: 在 Windows 上安装、升级或卸载 wensu（文溯，Python 包 + 原生消息宿主 + 浏览器扩展），并验证 MCP 桥接是否可用。当用户说"装上/升级/重装这个检索服务"，或 status 里 bridge_ready 为 false 时使用。
 ---
 
-# 安装 scholar-search
+# 安装 wensu（文溯）
 
 ## 何时使用
 
-- 用户要在新机器上装 scholar-search；
+- 用户要在新机器上装 wensu；
 - 用户要升级到新版本；
-- `scholar-search status` 里 `bridge_ready: false`，需要重建宿主与扩展的链路；
+- `wensu status` 里 `bridge_ready: false`，需要重建宿主与扩展的链路；
 - 用户换了浏览器环境（新 profile、换 Edge/Chrome）。
 
 ## 前提（先检查，别急着装）
@@ -44,10 +44,10 @@ $root = "$env:LOCALAPPDATA\scholar-search\installations\$ver"
 # 新装
 python -m venv "$root\venv"
 & "$root\venv\Scripts\python.exe" -m pip install --upgrade pip
-& "$root\venv\Scripts\python.exe" -m pip install .\dist\scholar_search-$ver-py3-none-any.whl
+& "$root\venv\Scripts\python.exe" -m pip install .\dist\wensu-$ver-py3-none-any.whl
 
 # 验证
-& "$root\venv\Scripts\python.exe" -m scholar_search.cli --version   # 应输出 scholar-search <ver>
+& "$root\venv\Scripts\python.exe" -m scholar_search.cli --version   # 应输出 wensu <ver>
 ```
 
 ### 3. 导出浏览器资源
@@ -110,7 +110,7 @@ stdio 配置：
 ```json
 {
   "mcpServers": {
-    "scholar-search": {
+    "wensu": {
       "command": "C:\\Users\\<用户>\\AppData\\Local\\scholar-search\\installations\\<版本>\\venv\\Scripts\\python.exe",
       "args": ["-m", "scholar_search.cli", "serve", "--transport", "stdio"]
     }
@@ -118,7 +118,7 @@ stdio 配置：
 }
 ```
 
-如果客户端是 Codex，改 `~/.codex/config.toml` 的 `[mcp_servers.scholar-search]`；
+如果客户端是 Codex，改 `~/.codex/config.toml` 的 `[mcp_servers.wensu]`；
 如果是 DSH，改 bundle 的 `cordis.patch.yml`（不要手改 profile）。改完**重启客户端**，
 stdio server 是子进程，不重启不会换代码。
 
@@ -138,8 +138,8 @@ stdio server 是子进程，不重启不会换代码。
 | `install.ps1` 报 `csc.exe not found` | 缺 .NET Framework 编译器 | 让用户装 .NET Framework 4.x，或从别的机器拷 `scholar-host.exe` |
 | `status` 正常但检索报 `content_not_ready` | 浏览器停在错误页。**国内最常见的是代理换证**：代理软件对 `kns.cnki.net` 做 TLS 中间人，Edge 显示「隐私错误 / `NET::ERR_CERT_COMMON_NAME_INVALID`」，错误页上没有内容脚本 | 先看浏览器窗口标题。是错误页就让 `cnki.net` 直连（Clash 里加 `DOMAIN-SUFFIX,cnki.net → DIRECT`，或把 `*.cnki.net;cnki.net` 加进 `ProxyOverride`），重启浏览器；**不要**用 `curl`/`Invoke-WebRequest` 能通就判断站点没问题——它们不走系统代理 |
 | 动作报 `bridge.timeout` | 窗口不在前台导致定时器节流，或标签页状态坏 | 切前台、只留一个窗口一个标签页；仍不行关掉 CNKI 标签页重来 |
-| `blocked` + `cooldown_until` | 触发了风控 | **停止**。让用户人工在浏览器完成验证，再 `scholar-search reset --confirm`。禁止重试 |
-| **全新浏览器环境第一次检索就 `blocked`（`verify_redirect`）** | 新 profile 没有 Cookie 与历史，知网要求人工验证；属预期行为 | 让用户在该窗口完成滑块验证 → `scholar-search reset --confirm` → 再跑一次。**不要**直接 reset 后立刻重试，reset 前必须确认验证已通过 |
+| `blocked` + `cooldown_until` | 触发了风控 | **停止**。让用户人工在浏览器完成验证，再 `wensu reset --confirm`。禁止重试 |
+| **全新浏览器环境第一次检索就 `blocked`（`verify_redirect`）** | 新 profile 没有 Cookie 与历史，知网要求人工验证；属预期行为 | 让用户在该窗口完成滑块验证 → `wensu reset --confirm` → 再跑一次。**不要**直接 reset 后立刻重试，reset 前必须确认验证已通过 |
 | 配额用尽 | 当日 300 次用完 | 等次日自动重置，不要改 `quota.json` |
 
 ## 不要做
