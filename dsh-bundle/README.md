@@ -5,12 +5,16 @@
 
 ## 前置
 
-`wensu` 命令必须在 DSH 进程的 PATH 上：
+`wensu` 命令必须在 DSH 进程的 PATH 上，浏览器侧也要装一次：
 
 ```powershell
 pip install wensu
-wensu status
+wensu setup        # 复制浏览器资源并注册原生宿主
+wensu status       # bridge_ready: true 才表示整条链路通了
 ```
+
+`wensu setup` 会打印扩展目录；在 `edge://extensions`（或 `chrome://extensions`）打开开发者模式，
+用“加载解压缩的扩展”选中该目录即可。没有浏览器侧时 MCP 服务仍会启动，但 `search` 会返回桥接错误。
 
 ## 安装
 

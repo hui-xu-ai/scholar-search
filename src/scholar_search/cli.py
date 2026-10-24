@@ -37,6 +37,14 @@ def build_parser() -> argparse.ArgumentParser:
     assets.add_argument("--target", required=True, help="destination directory")
     assets.add_argument("--force", action="store_true", help="replace existing asset directories")
 
+    setup = sub.add_parser("setup", help="copy browser assets and register the native host")
+    setup.add_argument(
+        "--target", default=None, help="where to copy the assets (default: <home>/browser)"
+    )
+    setup.add_argument("--force", action="store_true", help="replace existing asset directories")
+    setup.add_argument("--python", default=None, help="interpreter the native host should run")
+    setup.add_argument("--no-host", action="store_true", help="only copy the assets")
+
     return parser
 
 
@@ -70,6 +78,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     config.ensure_home()
+
+    if args.command == "setup":
+        from .browser_setup import setup_browser
+
+        return setup_browser(
+            Path(args.target) if args.target else None,
+            force=args.force,
+            python=args.python,
+            register_host=not args.no_host,
+        )
 
     if args.command == "status":
         from .bootstrap import build_service

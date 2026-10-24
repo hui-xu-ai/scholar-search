@@ -62,6 +62,8 @@ ID 不匹配的表现：扩展连不上宿主，`wensu status` 一直 `bridge_re
 
 ## 4. 注册原生宿主
 
+> 快捷方式：`wensu setup` 会一次完成“导出资源 + 注册宿主”并打印扩展目录；下面的手工步骤适合排查问题。
+
 ```powershell
 # 源码安装
 pwsh .\native-host\install.ps1 -Python .\.venv\Scripts\python.exe

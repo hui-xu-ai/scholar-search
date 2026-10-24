@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-10-24
+
+### Added
+
+- `wensu setup`: copies the browser assets next to the runtime home, registers the native
+  messaging host, and prints the extension directory. A fresh install is now one command plus
+  the one-time "load unpacked" step, instead of three commands.
+- `wensu setup --target DIR` / `--no-host` for a custom location or an assets-only run.
+
+### Fixed
+
+- Source checkouts can run `wensu setup` and `wensu assets` directly: the asset lookup falls
+  back to the repository layout when the wheel's packaged copy is absent.
+
+### Docs
+
+- README, the DSH bundle README and the market index now state the browser-side step, so users
+  are not surprised by `bridge_ready: false` after installing the plugin.
+
 ## [0.4.0] - 2026-10-23
 
 ### Changed

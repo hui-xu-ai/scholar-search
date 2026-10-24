@@ -64,21 +64,23 @@ MCP 客户端 ──stdio / HTTP──▶ MCP server
 前置：Windows、Python 3.11+、Edge（或 Chrome）。浏览器侧目前只在 Windows 上提供。
 
 ```powershell
-# 1) 装包（已发布到 PyPI；离线时用 Releases 里的 wheel，把 <版本> 换成实际版本号）
+# 1) 装包（已发布到 PyPI；离线时用 Releases 里的 wheel）
 pip install wensu
-# 或
-pip install .\wensu-<版本>-py3-none-any.whl
 
-# 2) 导出浏览器侧资源并注册原生宿主
-wensu assets --target .\browser
-pwsh .\browser\native-host\install.ps1
+# 2) 一条命令装好浏览器资源与原生宿主
+wensu setup
 
-# 3) 装扩展：edge://extensions → 开发者模式 → 加载解压缩的扩展 → 选 .\browser\extension
+# 3) 装扩展（只需一次）：edge://extensions → 开发者模式
+#    → 加载解压缩的扩展 → 选 wensu setup 打印的 extension 目录
 #    扩展 ID 由 manifest 里的 key 固定，恒为 gmaimbocfjkolcpljeekjcomakipoaph
 
 # 4) 验证
 wensu status
 ```
+
+`wensu setup` 把资源放到 `%LOCALAPPDATA%\scholar-search\browser`，注册 Edge/Chrome 的原生宿主，并打印
+扩展目录；它不写系统目录，也不需要管理员权限。想自己指定位置或只复制资源，用
+`wensu setup --target <目录>` / `wensu setup --no-host`。
 
 `status` 里 `bridge_ready: true` 就通了。
 

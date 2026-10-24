@@ -15,7 +15,16 @@ ASSET_DIRS = ("native-host", "extension", "schemas")
 
 
 def assets_root() -> Path:
-    return Path(str(files("scholar_search"))) / "assets"
+    """Where the browser assets live: the wheel's package data, or the repo."""
+
+    packaged = Path(str(files("scholar_search"))) / "assets"
+    if packaged.is_dir():
+        return packaged
+    # Source checkout: the assets sit at the repository root.
+    checkout = Path(__file__).resolve().parent.parent.parent
+    if (checkout / "native-host").is_dir() and (checkout / "extension").is_dir():
+        return checkout
+    return packaged
 
 
 def copy_assets(target: Path, *, force: bool = False) -> list[Path]:

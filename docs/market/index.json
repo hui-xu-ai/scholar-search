@@ -43,8 +43,8 @@
         "zh": "文溯 · 知网文献检索"
       },
       "description": {
-        "en": "Read-only Chinese bibliographic search over CNKI, exposed to the agent as MCP tools (search, detail, export, status).",
-        "zh": "只读的中文文献题录检索（知网渠道），以 MCP 工具接入 agent：search / detail / export / status。"
+        "en": "Read-only Chinese bibliographic search over CNKI, exposed to the agent as MCP tools (search, detail, export, status). Run `wensu setup` and load the companion extension once.",
+        "zh": "只读的中文文献题录检索（知网渠道），以 MCP 工具接入 agent：search / detail / export / status。装完运行 wensu setup，并在浏览器里加载一次配套扩展。"
       },
       "icon": "icons/wensu.svg",
       "author": "hui-xu-ai",
