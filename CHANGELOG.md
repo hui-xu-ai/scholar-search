@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-10-24
+
+### Docs
+
+- The status line and the upgrade steps now match the setup flow: upgrades use
+  `pip install --upgrade wensu` and `wensu setup --force`, instead of hand-running
+  `assets` and `install.ps1`.
+
 ## [0.4.1] - 2026-10-24
 
 ### Added

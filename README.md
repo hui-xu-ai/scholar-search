@@ -128,9 +128,8 @@ wensu serve --transport http --host 127.0.0.1 --port 8765
 ## 升级到新版本
 
 ```powershell
-pip install --upgrade .\dist\wensu-<新版>-py3-none-any.whl
-wensu assets --target .\browser --force
-pwsh .\browser\native-host\install.ps1 -Python <venv>\Scripts\python.exe
+pip install --upgrade wensu
+wensu setup --force
 # 重启 MCP 客户端，让它重新拉起 server 进程
 ```
 
@@ -139,13 +138,13 @@ pwsh .\browser\native-host\install.ps1 -Python <venv>\Scripts\python.exe
 - **必须重启 MCP 客户端**。server 是 stdio 子进程，模块在启动时导入，换文件不会热生效。
 - 扩展**通常不用重装**：Python 侧改动不影响扩展；只有 `extension/` 里的 JS 或
   `manifest.json` 变了才需要重新加载扩展。
-- 原生宿主在升级后要重跑 `install.ps1`（它负责写清单、注册表项和低完整性标签）。
+- 原生宿主在升级后要重跑 `wensu setup --force`（它负责写清单、注册表项和低完整性标签）。
 
 完整流程、目录布局与回滚见 [docs/operations.md](docs/operations.md)。
 
 ## 状态
 
-当前版本 **v0.4.0**（最新 release 见仓库 Releases 页）。真机验证过的能力（2026-10-21，知网 2026.10 版页面）：
+当前版本 **v0.4.2**（最新 release 见仓库 Releases 页）。真机验证过的能力（2026-10-21，知网 2026.10 版页面）：
 
 | 能力 | 状态 |
 |---|---|
