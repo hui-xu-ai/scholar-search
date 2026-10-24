@@ -51,7 +51,7 @@
       "homepage": "https://github.com/hui-xu-ai/wensu",
       "repository": {
         "url": "https://github.com/hui-xu-ai/wensu",
-        "directory": "dsh-bundle"
+        "directory": "packages/dsh-wensu"
       },
       "metadata": {
         "category": "literature",

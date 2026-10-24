@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: dsh-bundle
+        working-directory: packages/dsh-wensu
     steps:
       - uses: actions/checkout@v4
 

@@ -1,14 +1,14 @@
 {
   "name": "@hui-xu-ai/dsh-wensu",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "DSH bundle that mounts the wensu (文溯) MCP server over stdio.",
   "license": "MIT",
   "author": "hui-xu-ai",
-  "homepage": "https://github.com/hui-xu-ai/wensu/tree/main/dsh-bundle#readme",
+  "homepage": "https://github.com/hui-xu-ai/wensu/tree/main/packages/dsh-wensu#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hui-xu-ai/wensu.git",
-    "directory": "dsh-bundle"
+    "directory": "packages/dsh-wensu"
   },
   "bugs": {
     "url": "https://github.com/hui-xu-ai/wensu/issues"
