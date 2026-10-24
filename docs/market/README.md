@@ -10,7 +10,7 @@
 https://hui-xu-ai.github.io/wensu/market/index.json
 ```
 
-GitHub Pages 还没开启时，可以先用 raw 地址（同样满足 https、无重定向）：
+Pages 构建偶尔滞后时，可以先用 raw 地址（同样满足 https、无重定向）：
 
 ```text
 https://raw.githubusercontent.com/hui-xu-ai/wensu/main/docs/market/index.json
